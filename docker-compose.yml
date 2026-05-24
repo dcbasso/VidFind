@@ -1,0 +1,78 @@
+services:
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: ad-search-meili
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY:-changeme123}"
+      MEILI_ENV: "production"
+    volumes:
+      - meili_data:/meili_data
+    ports:
+      - "7700:7700"
+
+  whisper-worker:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: ad-search-whisper
+    restart: unless-stopped
+    environment:
+      ASR_MODEL: small
+      ASR_ENGINE: faster_whisper
+    volumes:
+      - "${VIDEOS_PATH}:/videos:ro"
+    ports:
+      - "9000:9000"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ad-search-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+
+  indexer:
+    build: ./indexer
+    container_name: ad-search-indexer
+    restart: "no"
+    environment:
+      VIDEOS_PATH: /videos
+      VIDEO_SCAN_SUBDIR: "${VIDEO_SCAN_SUBDIR:-}"
+      MEILI_URL: http://meilisearch:7700
+      MEILI_KEY: "${MEILI_MASTER_KEY:-changeme123}"
+      WHISPER_URL: http://whisper-worker:9000
+      SRT_OUTPUT_PATH: /srt
+      OLLAMA_URL: "${OLLAMA_URL:-http://ollama:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llava:13b}"
+      TIMEBOX_INTERVAL: "${TIMEBOX_INTERVAL:-10}"
+    volumes:
+      - "${VIDEOS_PATH}:/videos:ro"
+      - srt_data:/srt
+    depends_on:
+      - meilisearch
+      - whisper-worker
+      - ollama
+
+  web:
+    build: ./web
+    container_name: ad-search-web
+    restart: unless-stopped
+    environment:
+      MEILI_URL: http://meilisearch:7700
+      MEILI_KEY: "${MEILI_MASTER_KEY:-changeme123}"
+      VIDEOS_PATH: /videos
+      SRT_PATH: /srt
+    volumes:
+      - "${VIDEOS_PATH}:/videos:ro"
+      - srt_data:/srt:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - meilisearch
+
+volumes:
+  meili_data:
+  srt_data:
+  ollama_data:

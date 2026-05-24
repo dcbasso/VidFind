@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acervo · Studio Hexata</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #000000;
+      --surface:   #0d0d0d;
+      --surface2:  #141414;
+      --border:    #222222;
+      --border2:   #2e2e2e;
+      --accent:    #ffffff;
+      --accent-dim:#555555;
+      --text:      #f0f0f0;
+      --muted:     #555555;
+      --mark-bg:   rgba(255,255,255,0.15);
+      --mark-fg:   #ffffff;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; }
+
+    .hidden { display: none !important; }
+
+    /* ── Shell ── */
+    .shell { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr auto; }
+
+    /* ── Header ── */
+    header { border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; align-items: stretch; gap: 0; height: 72px; }
+
+    .logo-wrap { display: flex; align-items: center; padding-right: 32px; border-right: 1px solid var(--border); }
+    .logo-wrap img { height: 28px; width: auto; }
+
+    .header-center { flex: 1; display: flex; align-items: center; padding: 0 32px; }
+    .header-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
+
+    .stats-pill { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); border: 1px solid var(--border); border-radius: 2px; padding: 4px 12px; letter-spacing: 0.05em; }
+
+    /* ── Tab bar ── */
+    .tab-bar { border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; gap: 0; height: 40px; }
+
+    .tab-btn {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.68rem;
+      text-transform: uppercase; letter-spacing: 0.12em; padding: 0 20px;
+      cursor: pointer; transition: color 0.15s, border-color 0.15s;
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: #aaa; }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Content wrapper ── */
+    .content-wrap { overflow: hidden; display: grid; }
+
+    /* ── Search panel ── */
+    #panel-search { display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    aside { border-right: 1px solid var(--border); padding: 32px 24px; display: flex; flex-direction: column; gap: 32px; overflow-y: auto; }
+    aside::-webkit-scrollbar { width: 3px; }
+    aside::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    .search-block { display: flex; flex-direction: column; gap: 10px; }
+
+    .label { font-family: 'DM Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
+
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 2px;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.92rem; font-weight: 300;
+      padding: 10px 14px 10px 36px; outline: none; transition: border-color 0.2s; letter-spacing: 0.01em;
+    }
+    .search-wrap input::placeholder { color: var(--muted); }
+    .search-wrap input:focus { border-color: #444; }
+
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.9rem; pointer-events: none; }
+
+    /* folder list */
+    .folder-list { display: flex; flex-direction: column; gap: 1px; max-height: 360px; overflow-y: auto; }
+    .folder-list::-webkit-scrollbar { width: 3px; }
+    .folder-list::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    .folder-btn {
+      background: none; border: none; color: var(--muted); font-family: 'DM Mono', monospace;
+      font-size: 0.72rem; text-align: left; padding: 6px 10px; border-radius: 2px; cursor: pointer;
+      transition: background 0.12s, color 0.12s; white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; letter-spacing: 0.02em;
+    }
+    .folder-btn:hover { background: var(--surface2); color: #aaa; }
+    .folder-btn.active { background: #fff; color: #000; }
+
+    /* ── Results area ── */
+    .results-area { padding: 32px 40px; overflow-y: auto; max-height: calc(100vh - 72px - 40px - 48px); }
+    .results-area::-webkit-scrollbar { width: 4px; }
+    .results-area::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    /* state messages */
+    .state-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 16px; color: var(--muted); }
+    .state-msg .big-text { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; letter-spacing: 0.08em; color: #1a1a1a; line-height: 1; }
+    .state-msg p { font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+
+    .result-meta { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .result-meta strong { color: #888; }
+
+    /* hit cards */
+    .hits-list { display: flex; flex-direction: column; gap: 1px; }
+
+    .hit-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+      padding: 14px 20px; display: grid; grid-template-columns: 80px 1fr;
+      gap: 0 20px; align-items: start; transition: background 0.15s, border-color 0.15s;
+    }
+    .hit-card:hover { background: var(--surface2); border-color: var(--border2); }
+
+    .ts-badge { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: #333; letter-spacing: 0.06em; line-height: 1; transition: color 0.15s; padding-top: 2px; }
+    .hit-card:hover .ts-badge { color: #fff; }
+
+    .hit-body { min-width: 0; }
+    .hit-path { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 0.05em; }
+    .hit-path .folder-tag { color: #444; margin-right: 2px; }
+    .hit-text { font-size: 0.87rem; color: #aaa; line-height: 1.45; font-weight: 300; }
+    .hit-card:hover .hit-text { color: var(--text); }
+    .hit-text mark { background: var(--mark-bg); color: var(--mark-fg); border-radius: 1px; padding: 0 2px; font-weight: 500; }
+
+    /* action buttons */
+    .hit-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+
+    .action-btn {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 2px; padding: 3px 9px; font-size: 0.6rem;
+      font-family: 'DM Mono', monospace; cursor: pointer; letter-spacing: 0.07em;
+      text-transform: uppercase; transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .action-btn:hover { border-color: #555; color: #ccc; }
+    .action-btn.primary { border-color: #333; color: #666; }
+    .action-btn.primary:hover { border-color: #aaa; color: #fff; }
+    .action-btn.copied { border-color: #fff; color: #fff; }
+
+    /* loading */
+    .loading { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 80px; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: #333; animation: pulse 1.2s ease-in-out infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+    /* ── Videos panel ── */
+    #panel-videos { padding: 32px 40px; overflow-y: auto; max-height: calc(100vh - 72px - 40px - 48px); }
+    #panel-videos::-webkit-scrollbar { width: 4px; }
+    #panel-videos::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    .videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1px; }
+
+    .vcard {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+      padding: 16px 20px; transition: background 0.15s, border-color 0.15s;
+    }
+    .vcard:hover { background: var(--surface2); border-color: var(--border2); }
+    .vcard-folder { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: #444; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .vcard-name { font-size: 0.9rem; color: #ccc; font-weight: 400; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vcard-meta { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 12px; }
+    .vcard-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+    .videos-meta { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .videos-meta strong { color: #888; }
+
+    /* ── Scenes panel ── */
+    #panel-scenes { display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
+
+    .scene-badge {
+      font-family: 'DM Mono', monospace; font-size: 0.55rem; text-transform: uppercase;
+      letter-spacing: 0.1em; padding: 2px 6px; border-radius: 2px; margin-left: 6px;
+      border: 1px solid #333; color: #555; vertical-align: middle;
+    }
+
+    @media (max-width: 700px) {
+      #panel-scenes { grid-template-columns: 1fr; }
+    }
+
+    /* ── Footer ── */
+    footer { border-top: 1px solid var(--border); padding: 0 40px; height: 48px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-left { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .footer-right { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; }
+    .footer-right a { color: #555; text-decoration: none; transition: color 0.15s; text-transform: uppercase; letter-spacing: 0.08em; }
+    .footer-right a:hover { color: #fff; }
+    .sep { color: #222; }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 24px;
+    }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--border2); border-radius: 2px;
+      width: 100%; max-width: 760px; max-height: 88vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-box--video { max-width: 960px; }
+
+    .modal-head {
+      display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .modal-title { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.1em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .modal-head-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .modal-body { overflow-y: auto; flex: 1; }
+    .modal-body::-webkit-scrollbar { width: 4px; }
+    .modal-body::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    /* subtitle rows */
+    .sub-row {
+      display: grid; grid-template-columns: 90px 1fr;
+      gap: 0 16px; padding: 10px 20px; border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    .sub-row:hover { background: var(--surface2); }
+    .sub-row.active { background: #1a1a1a; border-left: 2px solid #fff; padding-left: 18px; }
+    .sub-ts { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: #444; letter-spacing: 0.06em; padding-top: 1px; }
+    .sub-row.active .sub-ts { color: #888; }
+    .sub-text { font-size: 0.87rem; color: #888; font-weight: 300; line-height: 1.45; }
+    .sub-row.active .sub-text { color: var(--text); }
+
+    /* video player */
+    #video-player { width: 100%; display: block; background: #000; max-height: calc(88vh - 60px); }
+
+    @media (max-width: 700px) {
+      #panel-search { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid var(--border); }
+      header { padding: 0 20px; }
+      .tab-bar { padding: 0 20px; }
+      .results-area { padding: 20px; }
+      #panel-videos { padding: 20px; }
+      footer { padding: 0 20px; }
+      .hit-card { grid-template-columns: 60px 1fr; }
+      .videos-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="logo-wrap">
+      <img src="/static/logo.png" alt="Studio Hexata" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+      <span style="display:none; font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:0.1em; color:#fff;">STUDIO HEXATA</span>
+    </div>
+    <div class="header-center">
+      <span class="header-title">Acervo de Vídeos · Busca por Conteúdo</span>
+      <div class="stats-pill" id="stats-pill">Carregando…</div>
+    </div>
+  </header>
+
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="search">⌕ Legendas</button>
+    <button class="tab-btn" data-tab="scenes">⬡ Cenas</button>
+    <button class="tab-btn" data-tab="videos">▶ Vídeos</button>
+  </nav>
+
+  <div class="content-wrap">
+    <!-- Search panel -->
+    <main id="panel-search">
+      <aside>
+        <div class="search-block">
+          <div class="label">Buscar fala</div>
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="search-input" placeholder="ex: produto, slogan, marca…" autocomplete="off" autofocus>
+          </div>
+        </div>
+        <div>
+          <div class="label" style="margin-bottom:10px;">Filtrar pasta</div>
+          <div class="folder-list" id="folder-list">
+            <button class="folder-btn active" data-folder="">Todas</button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="results-area" id="results-area">
+        <div class="state-msg">
+          <div class="big-text">HEXATA</div>
+          <p>Digite para buscar nos vídeos</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Scenes panel -->
+    <main id="panel-scenes" class="hidden">
+      <aside>
+        <div class="search-block">
+          <div class="label">Buscar cena</div>
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="scenes-input" placeholder="ex: pessoa na câmera, quadro branco…" autocomplete="off">
+          </div>
+        </div>
+        <div>
+          <div class="label" style="margin-bottom:10px;">Filtrar pasta</div>
+          <div class="folder-list" id="scenes-folder-list">
+            <button class="folder-btn active" data-folder="">Todas</button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="results-area" id="scenes-results">
+        <div class="state-msg">
+          <div class="big-text">CENAS</div>
+          <p>Digite para buscar por descrição visual</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Videos panel -->
+    <section id="panel-videos" class="hidden">
+      <div class="state-msg">
+        <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="footer-left">Studio Hexata · Sistema de Busca de Acervo</div>
+    <div class="footer-right">
+      <span>Powered by</span>
+      <a href="https://dantebasso.com.br" target="_blank" rel="noopener">Dante Basso</a>
+      <span class="sep">·</span>
+      <a href="https://dantebasso.com.br" target="_blank" rel="noopener">dantebasso.com.br</a>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ── Modal: Legenda completa ───────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modal-subtitle" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-subtitle-title">Legenda</span>
+      <div class="modal-head-actions">
+        <a id="dl-srt" href="#" class="action-btn" download>↓ SRT</a>
+        <a id="dl-txt" href="#" class="action-btn" download>↓ TXT</a>
+        <button class="action-btn" onclick="closeModal('modal-subtitle')">✕ Fechar</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-subtitle-body">
+      <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Player de vídeo ────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modal-video" role="dialog" aria-modal="true">
+  <div class="modal-box modal-box--video">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-video-title">Player</span>
+      <button class="action-btn" onclick="closeModal('modal-video')">✕ Fechar</button>
+    </div>
+    <video id="video-player" controls></video>
+  </div>
+</div>
+
+<script>
+  // ── Utilities ────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function loading() {
+    return `<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let debounceTimer        = null;
+  let activeFolder         = "";
+  let videosLoaded         = false;
+  let scenesDebounceTimer  = null;
+  let scenesActiveFolder   = "";
+  let scenesFoldersLoaded  = false;
+
+  const input      = document.getElementById("search-input");
+  const resultArea = document.getElementById("results-area");
+  const folderList = document.getElementById("folder-list");
+  const statsPill  = document.getElementById("stats-pill");
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  fetch("/api/stats").then(r => r.json()).then(d => {
+    const sub = d.numberOfDocuments ?? 0;
+    const vis = d.sceneDocuments ?? 0;
+    statsPill.textContent = `${Number(sub).toLocaleString("pt-BR")} legendas · ${Number(vis).toLocaleString("pt-BR")} cenas`;
+  }).catch(() => { statsPill.textContent = "offline"; });
+
+  // ── Folders ───────────────────────────────────────────────────────────────
+  fetch("/api/folders").then(r => r.json()).then(folders => {
+    folders.forEach(f => {
+      const btn = document.createElement("button");
+      btn.className = "folder-btn";
+      btn.dataset.folder = f;
+      btn.textContent = f === "." ? "(raiz)" : f;
+      btn.title = f;
+      folderList.appendChild(btn);
+    });
+  });
+
+  folderList.addEventListener("click", e => {
+    const btn = e.target.closest(".folder-btn");
+    if (!btn) return;
+    folderList.querySelectorAll(".folder-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeFolder = btn.dataset.folder;
+    doSearch();
+  });
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  document.querySelector(".tab-bar").addEventListener("click", e => {
+    const btn = e.target.closest(".tab-btn");
+    if (!btn) return;
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const tab = btn.dataset.tab;
+    document.getElementById("panel-search").classList.toggle("hidden", tab !== "search");
+    document.getElementById("panel-scenes").classList.toggle("hidden", tab !== "scenes");
+    document.getElementById("panel-videos").classList.toggle("hidden", tab !== "videos");
+    if (tab === "videos" && !videosLoaded) loadVideos();
+    if (tab === "scenes" && !scenesFoldersLoaded) loadScenesFolders();
+  });
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  input.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(doSearch, 280);
+  });
+
+  function doSearch() {
+    const q = input.value.trim();
+    if (!q) {
+      resultArea.innerHTML = `<div class="state-msg"><div class="big-text">HEXATA</div><p>Digite para buscar nos vídeos</p></div>`;
+      return;
+    }
+    resultArea.innerHTML = loading();
+    const params = new URLSearchParams({ q, limit: 100 });
+    if (activeFolder) params.set("folder", activeFolder);
+    fetch(`/api/search?${params}`)
+      .then(r => r.json())
+      .then(renderResults)
+      .catch(() => {
+        resultArea.innerHTML = `<div class="state-msg"><div class="big-text">ERR</div><p>Erro ao conectar com o servidor</p></div>`;
+      });
+  }
+
+  function renderResults(data) {
+    if (!data.hits || data.hits.length === 0) {
+      resultArea.innerHTML = `<div class="state-msg"><div class="big-text">—</div><p>Nenhum resultado encontrado</p></div>`;
+      return;
+    }
+    const meta = `<div class="result-meta"><strong>${data.hits.length}</strong> resultado${data.hits.length !== 1 ? "s" : ""}${data.total > data.hits.length ? ` de ~${data.total}` : ""}</div>`;
+    const cards = data.hits.map(h => {
+      const folder = h.folder && h.folder !== "." ? `<span class="folder-tag">${escHtml(h.folder)}/</span>` : "";
+      const vp  = encodeURIComponent(h.video_path);
+      const start = parseFloat(h.start) || 0;
+      return `
+        <div class="hit-card">
+          <div class="ts-badge">${escHtml(h.timestamp)}</div>
+          <div class="hit-body">
+            <div class="hit-path">${folder}${escHtml(h.video_name)}</div>
+            <div class="hit-text">${h.text}</div>
+            <div class="hit-actions">
+              <button class="action-btn primary"
+                      data-action="play"
+                      data-path="${escHtml(h.video_path)}"
+                      data-start="${start}"
+                      data-name="${escHtml(h.video_name)}">▶ Assistir</button>
+              <button class="action-btn"
+                      data-action="subtitle"
+                      data-path="${escHtml(h.video_path)}"
+                      data-start="${start}"
+                      data-name="${escHtml(h.video_name)}">≡ Legenda</button>
+              <a class="action-btn" href="/api/subtitle?video_path=${vp}" download>↓ SRT</a>
+              <a class="action-btn" href="/api/transcript/txt?video_path=${vp}" download>↓ TXT</a>
+              <a class="action-btn" href="/api/video?path=${vp}&download=1" download>↓ Vídeo</a>
+              <button class="action-btn"
+                      data-action="copy"
+                      data-name="${escHtml(h.video_name)}"
+                      data-ts="${escHtml(h.timestamp)}">⎘ Copiar</button>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+    resultArea.innerHTML = meta + `<div class="hits-list">${cards}</div>`;
+  }
+
+  // Delegate card action clicks
+  document.getElementById("results-area").addEventListener("click", e => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const { action, path, start, name, ts } = btn.dataset;
+    if (action === "play")     openVideoModal(path, parseFloat(start), name);
+    if (action === "subtitle") openSubtitleModal(path, parseFloat(start), name);
+    if (action === "copy")     copyBtn(btn, name, ts);
+  });
+
+  // ── Scenes tab ───────────────────────────────────────────────────────────
+  const scenesInput      = document.getElementById("scenes-input");
+  const scenesResultArea = document.getElementById("scenes-results");
+  const scenesFolderList = document.getElementById("scenes-folder-list");
+
+  function loadScenesFolders() {
+    fetch("/api/folders").then(r => r.json()).then(folders => {
+      folders.forEach(f => {
+        const btn = document.createElement("button");
+        btn.className = "folder-btn";
+        btn.dataset.folder = f;
+        btn.textContent = f === "." ? "(raiz)" : f;
+        btn.title = f;
+        scenesFolderList.appendChild(btn);
+      });
+    });
+    scenesFoldersLoaded = true;
+  }
+
+  scenesFolderList.addEventListener("click", e => {
+    const btn = e.target.closest(".folder-btn");
+    if (!btn) return;
+    scenesFolderList.querySelectorAll(".folder-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    scenesActiveFolder = btn.dataset.folder;
+    doScenesSearch();
+  });
+
+  scenesInput.addEventListener("input", () => {
+    clearTimeout(scenesDebounceTimer);
+    scenesDebounceTimer = setTimeout(doScenesSearch, 280);
+  });
+
+  function doScenesSearch() {
+    const q = scenesInput.value.trim();
+    if (!q) {
+      scenesResultArea.innerHTML = `<div class="state-msg"><div class="big-text">CENAS</div><p>Digite para buscar por descrição visual</p></div>`;
+      return;
+    }
+    scenesResultArea.innerHTML = loading();
+    const params = new URLSearchParams({ q, limit: 100 });
+    if (scenesActiveFolder) params.set("folder", scenesActiveFolder);
+    fetch(`/api/search/scenes?${params}`)
+      .then(r => r.json())
+      .then(renderScenesResults)
+      .catch(() => {
+        scenesResultArea.innerHTML = `<div class="state-msg"><div class="big-text">ERR</div><p>Erro ao conectar com o servidor</p></div>`;
+      });
+  }
+
+  function renderScenesResults(data) {
+    if (!data.hits || data.hits.length === 0) {
+      scenesResultArea.innerHTML = `<div class="state-msg"><div class="big-text">—</div><p>Nenhuma cena encontrada</p></div>`;
+      return;
+    }
+    const meta = `<div class="result-meta"><strong>${data.hits.length}</strong> cena${data.hits.length !== 1 ? "s" : ""}${data.total > data.hits.length ? ` de ~${data.total}` : ""}</div>`;
+    const cards = data.hits.map(h => {
+      const folder = h.folder && h.folder !== "." ? `<span class="folder-tag">${escHtml(h.folder)}/</span>` : "";
+      const vp    = encodeURIComponent(h.video_path);
+      const start = parseFloat(h.start) || 0;
+      return `
+        <div class="hit-card">
+          <div class="ts-badge">${escHtml(h.timestamp)}</div>
+          <div class="hit-body">
+            <div class="hit-path">${folder}${escHtml(h.video_name)}<span class="scene-badge">cena</span></div>
+            <div class="hit-text">${h.description}</div>
+            <div class="hit-actions">
+              <button class="action-btn primary"
+                      data-action="play"
+                      data-path="${escHtml(h.video_path)}"
+                      data-start="${start}"
+                      data-name="${escHtml(h.video_name)}">▶ Assistir</button>
+              <a class="action-btn" href="/api/video?path=${vp}&download=1" download>↓ Vídeo</a>
+              <button class="action-btn"
+                      data-action="copy"
+                      data-name="${escHtml(h.video_name)}"
+                      data-ts="${escHtml(h.timestamp)}">⎘ Copiar</button>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+    scenesResultArea.innerHTML = meta + `<div class="hits-list">${cards}</div>`;
+  }
+
+  document.getElementById("scenes-results").addEventListener("click", e => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const { action, path, start, name, ts } = btn.dataset;
+    if (action === "play") openVideoModal(path, parseFloat(start), name);
+    if (action === "copy") copyBtn(btn, name, ts);
+  });
+
+  // ── Videos tab ───────────────────────────────────────────────────────────
+  function loadVideos() {
+    const panel = document.getElementById("panel-videos");
+    panel.innerHTML = loading();
+    fetch("/api/videos")
+      .then(r => r.json())
+      .then(renderVideos)
+      .catch(() => {
+        panel.innerHTML = `<div class="state-msg"><div class="big-text">ERR</div><p>Erro ao carregar vídeos</p></div>`;
+      });
+    videosLoaded = true;
+  }
+
+  function renderVideos(list) {
+    const panel = document.getElementById("panel-videos");
+    if (!list || list.length === 0) {
+      panel.innerHTML = `<div class="state-msg"><div class="big-text">—</div><p>Nenhum vídeo indexado</p></div>`;
+      return;
+    }
+    const meta = `<div class="videos-meta"><strong>${list.length}</strong> vídeo${list.length !== 1 ? "s" : ""} indexado${list.length !== 1 ? "s" : ""}</div>`;
+    const cards = list.map(v => {
+      const vp  = encodeURIComponent(v.video_path);
+      const folder = v.folder && v.folder !== "." ? v.folder : "(raiz)";
+      return `
+        <div class="vcard">
+          <div class="vcard-folder">${escHtml(folder)}</div>
+          <div class="vcard-name" title="${escHtml(v.video_name)}">${escHtml(v.video_name)}</div>
+          <div class="vcard-meta">${v.segment_count} segmento${v.segment_count !== 1 ? "s" : ""}</div>
+          <div class="vcard-actions">
+            <button class="action-btn primary"
+                    data-action="subtitle"
+                    data-path="${escHtml(v.video_path)}"
+                    data-start="0"
+                    data-name="${escHtml(v.video_name)}">≡ Legenda</button>
+            <a class="action-btn" href="/api/subtitle?video_path=${vp}" download>↓ SRT</a>
+            <a class="action-btn" href="/api/transcript/txt?video_path=${vp}" download>↓ TXT</a>
+            <a class="action-btn" href="/api/video?path=${vp}&download=1" download>↓ Vídeo</a>
+          </div>
+        </div>`;
+    }).join("");
+    panel.innerHTML = meta + `<div class="videos-grid">${cards}</div>`;
+
+    panel.addEventListener("click", e => {
+      const btn = e.target.closest("[data-action]");
+      if (!btn) return;
+      const { action, path, start, name } = btn.dataset;
+      if (action === "subtitle") openSubtitleModal(path, parseFloat(start), name);
+    }, { once: true });
+  }
+
+  // Re-delegate videos panel (called each render)
+  document.getElementById("panel-videos").addEventListener("click", e => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const { action, path, start, name } = btn.dataset;
+    if (action === "subtitle") openSubtitleModal(path, parseFloat(start), name);
+  });
+
+  // ── Modal: Subtitle ───────────────────────────────────────────────────────
+  function openSubtitleModal(videoPath, highlightStart, videoName) {
+    const modal = document.getElementById("modal-subtitle");
+    const body  = document.getElementById("modal-subtitle-body");
+    document.getElementById("modal-subtitle-title").textContent = videoName || videoPath;
+    const vp = encodeURIComponent(videoPath);
+    document.getElementById("dl-srt").href = `/api/subtitle?video_path=${vp}`;
+    document.getElementById("dl-txt").href = `/api/transcript/txt?video_path=${vp}`;
+    body.innerHTML = loading();
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+
+    fetch(`/api/transcript?video_path=${vp}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.segments || data.segments.length === 0) {
+          body.innerHTML = `<div class="state-msg" style="min-height:120px"><p>Sem segmentos encontrados</p></div>`;
+          return;
+        }
+        const rows = data.segments.map(seg => {
+          const isActive = highlightStart !== null && Math.abs(seg.start - highlightStart) < 0.5;
+          return `<div class="sub-row${isActive ? " active" : ""}" data-start="${seg.start}">
+            <span class="sub-ts">${escHtml(seg.timestamp)}</span>
+            <span class="sub-text">${escHtml(seg.text)}</span>
+          </div>`;
+        }).join("");
+        body.innerHTML = rows;
+        const active = body.querySelector(".sub-row.active");
+        if (active) setTimeout(() => active.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+      })
+      .catch(() => {
+        body.innerHTML = `<div class="state-msg" style="min-height:120px"><p>Erro ao carregar legenda</p></div>`;
+      });
+  }
+
+  // ── Modal: Video player ───────────────────────────────────────────────────
+  function openVideoModal(videoPath, startSeconds, videoName) {
+    const modal  = document.getElementById("modal-video");
+    const player = document.getElementById("video-player");
+    document.getElementById("modal-video-title").textContent = videoName || videoPath;
+    modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+    player.src = `/api/video?path=${encodeURIComponent(videoPath)}`;
+
+    const seekTo = Math.max(0, (startSeconds || 0) - 1);
+    if (seekTo > 0) {
+      player.addEventListener("loadedmetadata", () => {
+        player.currentTime = seekTo;
+      }, { once: true });
+    }
+    player.play().catch(() => {});
+  }
+
+  // ── Modal: Close ─────────────────────────────────────────────────────────
+  function closeModal(id) {
+    document.getElementById(id).classList.add("hidden");
+    document.body.style.overflow = "";
+    if (id === "modal-video") {
+      const player = document.getElementById("video-player");
+      player.pause();
+      player.removeAttribute("src");
+      player.load();
+    }
+  }
+
+  // Close modal on overlay click
+  document.querySelectorAll(".modal-overlay").forEach(overlay => {
+    overlay.addEventListener("click", e => {
+      if (e.target === overlay) closeModal(overlay.id);
+    });
+  });
+
+  // Close modal on Escape
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      document.querySelectorAll(".modal-overlay:not(.hidden)").forEach(m => closeModal(m.id));
+    }
+  });
+
+  // ── Copy ──────────────────────────────────────────────────────────────────
+  function copyBtn(btn, name, ts) {
+    navigator.clipboard.writeText(`${name} @ ${ts}`);
+    const orig = btn.textContent;
+    btn.textContent = "✓";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove("copied"); }, 1500);
+  }
+</script>
+</body>
+</html>
