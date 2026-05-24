@@ -1,66 +1,83 @@
-# Ad-Search — Busca em Acervo de Vídeos
+# VidFind — Video Archive Search
 
-Transcreve automaticamente arquivos de vídeo com Whisper e indexa
-os segmentos no Meilisearch para busca por texto com retorno de timestamp.
+Search your video archive by what was said or what was seen. Powered by Whisper (speech-to-text), LLaVA (scene description) and Meilisearch — returns timestamped results with in-browser playback. Fully self-hosted.
 
-## Estrutura
+## Structure
 
 ```
 ad-search/
 ├── docker-compose.yml
-├── .env                   ← configure aqui
+├── .env                   ← configure here
 ├── indexer/
 │   ├── Dockerfile
-│   └── indexer.py         ← transcreve + indexa
+│   └── indexer.py         ← transcribes + indexes
 └── web/
     ├── Dockerfile
-    ├── app.py             ← API Flask
+    ├── app.py             ← Flask API
     └── templates/
-        └── index.html     ← interface de busca
+        └── index.html     ← search interface
 ```
 
-## Configuração
+## Configuration
 
-### 1. Edite o `.env`
+### 1. Edit `.env`
 
 ```env
-VIDEOS_PATH=/mnt/publicidade        # caminho real dos vídeos no servidor
-MEILI_MASTER_KEY=minha_chave_segura  # troque por algo seguro
+VIDEOS_PATH=/path/to/your/videos   # absolute path to your video archive
+MEILI_MASTER_KEY=your-secret-key   # replace with a secure string
+OLLAMA_MODEL=llava:13b             # vision model for scene analysis
+TIMEBOX_INTERVAL=10                # seconds between analyzed frames
 ```
+
+See `.env.example` for all available options.
 
 ---
 
-## Primeira vez (instalação)
+## First run (installation)
 
-### 2. Suba os serviços base
+### 2. Start base services
 
 ```bash
 docker compose up -d meilisearch whisper-worker web
 ```
 
-Aguarde ~30 segundos para os serviços iniciarem.
+Wait ~30 seconds for the services to start.
 
-### 3. Rode o indexador
+### 3. Pull the vision model
+
+```bash
+docker compose exec ollama ollama pull llava:13b
+```
+
+### 4. Run the indexer
+
+```bash
+./reindex.sh
+```
+
+Or manually:
 
 ```bash
 docker compose up indexer
 ```
 
-O indexador vai:
-- Percorrer todas as subpastas de `VIDEOS_PATH`
-- Enviar cada vídeo ao Whisper para transcrição
-- Salvar o `.srt` em volume separado
-- Indexar todos os segmentos no Meilisearch
+The indexer will:
+- Walk all subdirectories of `VIDEOS_PATH`
+- Send each video to Whisper for transcription
+- Save `.srt` files to a separate volume
+- Index all speech segments in Meilisearch
+- Extract frames every `TIMEBOX_INTERVAL` seconds
+- Describe each frame with LLaVA and index the visual descriptions
 
-Acompanhe o progresso:
+Track progress:
 
 ```bash
 docker compose logs -f indexer
 ```
 
-Vídeos já indexados são pulados automaticamente em execuções futuras.
+Already-indexed videos are skipped automatically on future runs.
 
-### 4. Acesse a interface
+### 5. Open the interface
 
 ```
 http://localhost:8080
@@ -68,23 +85,48 @@ http://localhost:8080
 
 ---
 
-## Atualizar a interface web (após mudanças no código)
+## Search modes
 
-Se o código do `web/` foi alterado, reconstrua apenas o contêiner web sem derrubar o Meilisearch:
+| Tab | What it searches |
+|---|---|
+| **Subtitles** | Spoken words — indexed from Whisper transcription |
+| **Scenes** | Visual content — indexed from LLaVA frame descriptions |
+| **Videos** | Lists all indexed videos |
+
+---
+
+## Features
+
+| Feature | How to use |
+|---|---|
+| Search by speech | "Subtitles" tab — type any word |
+| Search by scene | "Scenes" tab — describe what you see |
+| Filter by folder | Left sidebar |
+| Watch exact moment | "▶ Watch" button on result |
+| View full transcript | "≡ Subtitles" button on result |
+| Download subtitle (.srt) | "↓ SRT" button |
+| Download transcript (.txt) | "↓ TXT" button — speech only, no timestamps |
+| Download video | "↓ Video" button |
+
+---
+
+## Updating the web interface
+
+If `web/` code was changed, rebuild only the web container:
 
 ```bash
 docker compose up -d --build web
 ```
 
-O Meilisearch e o Whisper continuam rodando. Os dados indexados são preservados.
+Meilisearch and Whisper keep running. Indexed data is preserved.
 
 ---
 
-## Deploy no servidor (após indexar na máquina local)
+## Deploy to a server (after indexing locally)
 
-Os vídeos já estão no servidor — só precisa levar o índice e as legendas.
+Videos are already on the server — you only need to transfer the index and subtitles.
 
-### 1. Exportar os volumes na máquina local
+### 1. Export volumes on local machine
 
 ```bash
 docker run --rm -v ad-search_meili_data:/data -v $(pwd):/backup alpine \
@@ -94,24 +136,22 @@ docker run --rm -v ad-search_srt_data:/data -v $(pwd):/backup alpine \
   tar czf /backup/srt_data.tar.gz -C /data .
 ```
 
-Isso gera dois arquivos `.tar.gz` na pasta atual.
-
-### 2. Copiar para o servidor
+### 2. Copy to server
 
 ```bash
-scp meili_data.tar.gz srt_data.tar.gz usuario@servidor:/caminho/ad-search/
+scp meili_data.tar.gz srt_data.tar.gz user@server:/path/to/ad-search/
 ```
 
-Copie também a pasta do projeto (`docker-compose.yml`, `web/`, `indexer/`) se ainda não estiver lá.
+Also copy the project folder (`docker-compose.yml`, `web/`, `indexer/`) if not already there.
 
-### 3. No servidor: ajustar o `.env`
+### 3. On the server: adjust `.env`
 
 ```env
-VIDEOS_PATH=/caminho/real/dos/videos/no/servidor
-MEILI_MASTER_KEY=minha_chave_segura
+VIDEOS_PATH=/real/path/to/videos/on/server
+MEILI_MASTER_KEY=your-secret-key
 ```
 
-### 4. No servidor: importar os volumes
+### 4. On the server: import volumes
 
 ```bash
 docker run --rm -v ad-search_meili_data:/data -v $(pwd):/backup alpine \
@@ -121,104 +161,97 @@ docker run --rm -v ad-search_srt_data:/data -v $(pwd):/backup alpine \
   tar xzf /backup/srt_data.tar.gz -C /data
 ```
 
-### 5. No servidor: subir apenas web + Meilisearch
+### 5. On the server: start web + Meilisearch only
 
-O Whisper **não precisa** rodar no servidor — a transcrição já foi feita.
+Whisper and Ollama **do not need to run** on the server — transcription and scene analysis are already done.
 
 ```bash
 docker compose up -d meilisearch web
 ```
 
-### 6. Acessar
+### 6. Access
 
 ```
-http://<ip-do-servidor>:8080
+http://<server-ip>:8080
 ```
-
-Tudo estará funcionando: busca, player, downloads, legendas.
 
 ---
 
-## Adicionar novos vídeos no futuro
+## Adding new videos
 
-Copie os vídeos para a pasta e rode novamente:
+Copy the videos to the folder and run:
 
 ```bash
-docker compose up indexer
+./reindex.sh
 ```
 
-Apenas os arquivos novos serão processados.
+Only new files will be processed.
 
 ---
 
-## Outros comandos úteis
+## Useful commands
 
 ```bash
-# Ver status de todos os contêineres
+# Check all container statuses
 docker compose ps
 
-# Parar tudo
+# Stop everything
 docker compose down
 
-# Reiniciar apenas a web
+# Restart web only
 docker compose restart web
 
-# Ver logs da web
+# View web logs
 docker compose logs -f web
 
-# Acompanhar indexação em andamento
+# Monitor indexing progress
 docker compose logs -f indexer
 ```
 
 ---
 
-## O que a interface oferece
+## Ports
 
-| Funcionalidade | Como usar |
-|---|---|
-| Busca por fala | Tab "Busca" — digite qualquer palavra |
-| Filtrar por pasta | Sidebar esquerda |
-| Assistir ao trecho exato | Botão "▶ Assistir" no resultado |
-| Ver legenda completa | Botão "≡ Legenda" no resultado |
-| Baixar legenda (.srt) | Botão "↓ SRT" |
-| Baixar transcrição (.txt) | Botão "↓ TXT" — apenas as falas, sem timestamps |
-| Baixar vídeo | Botão "↓ Vídeo" |
-| Listar todos os vídeos indexados | Tab "Vídeos" |
+| Service       | Port |
+|--------------|------|
+| Web interface | 8080 |
+| Meilisearch   | 7700 |
+| Whisper API   | 9000 |
+| Ollama        | 11434 |
 
 ---
 
-## Portas utilizadas
+## Transcription time estimates
 
-| Serviço       | Porta |
-|--------------|-------|
-| Interface web | 8080  |
-| Meilisearch   | 7700  |
-| Whisper API   | 9000  |
+With `small` model on a J1800 (no GPU):
 
----
+| Video duration | Estimated time |
+|----------------|----------------|
+| 30 seconds     | ~2–3 min       |
+| 1 minute       | ~4–6 min       |
+| 3 minutes      | ~12–18 min     |
 
-## Tempo estimado de transcrição
-
-Com o modelo `small` num J1800 (sem GPU):
-
-| Duração do vídeo | Tempo estimado |
-|-----------------|----------------|
-| 30 segundos     | ~2–3 min       |
-| 1 minuto        | ~4–6 min       |
-| 3 minutos       | ~12–18 min     |
-
-Para centenas de vídeos curtos, deixe o indexador rodando overnight.
-Ele retoma de onde parou se for interrompido.
+For hundreds of short videos, let the indexer run overnight. It resumes from where it left off if interrupted.
 
 ---
 
-## Trocar modelo do Whisper
+## Whisper model options
 
-No `docker-compose.yml`, altere `ASR_MODEL`:
+In `docker-compose.yml`, change `ASR_MODEL`:
 
-| Modelo   | Qualidade  | RAM usada | Velocidade                   |
+| Model    | Quality    | RAM usage | Speed                        |
 |----------|------------|-----------|------------------------------|
-| `tiny`   | básica     | ~400 MB   | mais rápido                  |
-| `base`   | boa        | ~600 MB   | rápido                       |
-| `small`  | ótima ✅   | ~1 GB     | moderado                     |
-| `medium` | excelente  | ~2 GB     | lento (arriscado no J1800)   |
+| `tiny`   | basic      | ~400 MB   | fastest                      |
+| `base`   | good       | ~600 MB   | fast                         |
+| `small`  | great ✅   | ~1 GB     | moderate                     |
+| `medium` | excellent  | ~2 GB     | slow                         |
+
+## LLaVA model options
+
+Set `OLLAMA_MODEL` in `.env`:
+
+| Model       | Quality    | VRAM needed | Speed   |
+|-------------|------------|-------------|---------|
+| `llava:7b`  | good       | ~5–6 GB     | faster  |
+| `llava:13b` | better ✅  | ~10–12 GB   | moderate|
+| `llava:34b` | best       | ~20 GB      | slow    |
