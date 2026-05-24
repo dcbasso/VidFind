@@ -1,7 +1,11 @@
+# VidFind — https://github.com/dcbasso/VidFind
+# Copyright (c) 2025 Dante Basso. MIT License.
+
 import os
+import json
 from pathlib import Path
 import requests
-from flask import Flask, render_template, request, jsonify, send_file, Response, abort
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, Response, abort
 
 app = Flask(__name__)
 
@@ -18,6 +22,10 @@ HEADERS = {
 }
 
 
+def _meili_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def _safe_resolve(base: str, user_path: str) -> Path:
     base_p = Path(base).resolve()
     full_p = Path(user_path).resolve()
@@ -30,7 +38,7 @@ def _fetch_segments(video_path: str):
     body = {
         "q": "",
         "limit": 10000,
-        "filter": f'video_path = "{video_path}"',
+        "filter": f'video_path = "{_meili_escape(video_path)}"',
         "sort": ["start:asc"],
         "attributesToRetrieve": ["start", "end", "timestamp", "text", "srt_path"],
     }
@@ -103,9 +111,29 @@ def _stream_file(filepath, mime):
 
 # ── Existing routes ──────────────────────────────────────────────────────────
 
+@app.route("/assets/<path:filename>")
+def serve_assets(filename):
+    return send_from_directory(os.path.join(app.root_path, "assets"), filename)
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/video")
+def video_page():
+    return render_template("video.html")
+
+
+@app.route("/api/config")
+def app_config():
+    config_path = Path(__file__).parent / "config.json"
+    try:
+        with open(config_path) as f:
+            return jsonify(json.load(f))
+    except Exception:
+        return jsonify({"logo_url": None, "title": None, "theme": "dark"})
 
 
 @app.route("/api/search")
@@ -126,7 +154,7 @@ def search():
     }
 
     if folder:
-        body["filter"] = f'folder = "{folder}"'
+        body["filter"] = f'folder = "{_meili_escape(folder)}"'
 
     r = requests.post(
         f"{MEILI_URL}/indexes/{INDEX_NAME}/search",
@@ -193,7 +221,7 @@ def search_scenes():
     }
 
     if folder:
-        body["filter"] = f'folder = "{folder}"'
+        body["filter"] = f'folder = "{_meili_escape(folder)}"'
 
     r = requests.post(
         f"{MEILI_URL}/indexes/{SCENES_INDEX}/search",
@@ -336,6 +364,64 @@ def video():
         return send_file(str(video_file), as_attachment=True, mimetype=mime)
 
     return _stream_file(video_file, mime)
+
+
+@app.route("/api/scenes")
+def scenes_api():
+    """All scenes of a video ordered by start time."""
+    video_path = request.args.get("video_path", "").strip()
+    if not video_path:
+        return jsonify({"error": "video_path required"}), 400
+    body = {
+        "q": "",
+        "limit": 10000,
+        "filter": f'video_path = "{_meili_escape(video_path)}"',
+        "sort": ["start:asc"],
+        "attributesToRetrieve": ["start", "end", "timestamp", "description"],
+    }
+    r = requests.post(
+        f"{MEILI_URL}/indexes/{SCENES_INDEX}/search",
+        headers=HEADERS,
+        json=body,
+        timeout=30,
+    )
+    segments = r.json().get("hits", [])
+    return jsonify({"segments": segments, "total": len(segments)})
+
+
+@app.route("/api/scenes/txt")
+def scenes_txt():
+    """Download scene descriptions as plain text with timestamps."""
+    video_path = request.args.get("video_path", "").strip()
+    if not video_path:
+        abort(400)
+    body = {
+        "q": "",
+        "limit": 10000,
+        "filter": f'video_path = "{_meili_escape(video_path)}"',
+        "sort": ["start:asc"],
+        "attributesToRetrieve": ["timestamp", "description"],
+    }
+    r = requests.post(
+        f"{MEILI_URL}/indexes/{SCENES_INDEX}/search",
+        headers=HEADERS,
+        json=body,
+        timeout=30,
+    )
+    segments = r.json().get("hits", [])
+    if not segments:
+        abort(404)
+    video_name = Path(video_path).stem
+    lines = [
+        f"[{seg.get('timestamp', '')}] {seg.get('description', '')}"
+        for seg in segments
+        if seg.get("description", "").strip()
+    ]
+    return Response(
+        "\n".join(lines),
+        mimetype="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{video_name}_cenas.txt"'},
+    )
 
 
 if __name__ == "__main__":
