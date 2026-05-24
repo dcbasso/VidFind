@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+# VidFind — https://github.com/dcbasso/VidFind
+# Copyright (c) 2025 Dante Basso. MIT License.
 """
-Indexador de vídeos — Studio Hexata / Acervo 2026
+Indexador de vídeos — VidFind 2025
 - Percorre subpastas de VIDEOS_PATH buscando arquivos .mp4 / .MP4
 - Ignora pastas ocultas (começando com .)
 - Extrai áudio como WAV e envia ao Whisper via API HTTP

@@ -1,4 +1,10 @@
+<p align="center">
+  <img src="web/assets/logo.png" alt="VidFind" height="56">
+</p>
+
 # VidFind — Video Archive Search
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Search your video archive by what was said or what was seen. Powered by Whisper (speech-to-text), LLaVA (scene description) and Meilisearch — returns timestamped results with in-browser playback. Fully self-hosted.
 
@@ -255,3 +261,12 @@ Set `OLLAMA_MODEL` in `.env`:
 | `llava:7b`  | good       | ~5–6 GB     | faster  |
 | `llava:13b` | better ✅  | ~10–12 GB   | moderate|
 | `llava:34b` | best       | ~20 GB      | slow    |
+
+---
+
+## License
+
+MIT License — free to use, modify and distribute.  
+If you use or fork this project, please keep the original copyright notice.
+
+© 2025 [Dante Basso](https://github.com/dcbasso) — see [LICENSE](LICENSE) for full terms.

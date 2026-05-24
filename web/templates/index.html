@@ -1,243 +1,495 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acervo · Studio Hexata</title>
+  <title>VidFind</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg:        #000000;
-      --surface:   #0d0d0d;
-      --surface2:  #141414;
-      --border:    #222222;
-      --border2:   #2e2e2e;
-      --accent:    #ffffff;
-      --accent-dim:#555555;
-      --text:      #f0f0f0;
-      --muted:     #555555;
-      --mark-bg:   rgba(255,255,255,0.15);
-      --mark-fg:   #ffffff;
+    /* ── Themes ───────────────────────────────────────────────────────────── */
+    :root, [data-theme="dark"] {
+      --bg:           #000000;
+      --surface:      #0d0d0d;
+      --surface2:     #141414;
+      --border:       #222222;
+      --border2:      #2e2e2e;
+      --accent:       #ffffff;
+      --accent-dim:   #666666;
+      --text:         #f0f0f0;
+      --muted:        #555555;
+      --mark-bg:      rgba(255,255,255,0.15);
+      --mark-fg:      #ffffff;
+      --tab-bar-bg:   #080808;
+      --tab-active-bg:#000000;
+    }
+    [data-theme="mid"] {
+      --bg:           #141414;
+      --surface:      #1e1e1e;
+      --surface2:     #272727;
+      --border:       #333333;
+      --border2:      #3d3d3d;
+      --accent:       #e8e8e8;
+      --accent-dim:   #777777;
+      --text:         #e0e0e0;
+      --muted:        #666666;
+      --mark-bg:      rgba(255,255,255,0.12);
+      --mark-fg:      #e8e8e8;
+      --tab-bar-bg:   #0e0e0e;
+      --tab-active-bg:#141414;
+    }
+    [data-theme="light"] {
+      --bg:           #f4f4f4;
+      --surface:      #ffffff;
+      --surface2:     #eeeeee;
+      --border:       #dddddd;
+      --border2:      #cccccc;
+      --accent:       #111111;
+      --accent-dim:   #555555;
+      --text:         #111111;
+      --muted:        #888888;
+      --mark-bg:      rgba(0,0,0,0.08);
+      --mark-fg:      #000000;
+      --tab-bar-bg:   #e4e4e4;
+      --tab-active-bg:#f4f4f4;
     }
 
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; }
-
+    /* ── Base ─────────────────────────────────────────────────────────────── */
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    }
     .hidden { display: none !important; }
+    body.resizing { cursor: col-resize; user-select: none; }
 
-    /* ── Shell ── */
-    .shell { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr auto; }
-
-    /* ── Header ── */
-    header { border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; align-items: stretch; gap: 0; height: 72px; }
-
-    .logo-wrap { display: flex; align-items: center; padding-right: 32px; border-right: 1px solid var(--border); }
-    .logo-wrap img { height: 28px; width: auto; }
-
-    .header-center { flex: 1; display: flex; align-items: center; padding: 0 32px; }
-    .header-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
-
-    .stats-pill { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); border: 1px solid var(--border); border-radius: 2px; padding: 4px 12px; letter-spacing: 0.05em; }
-
-    /* ── Tab bar ── */
-    .tab-bar { border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; gap: 0; height: 40px; }
-
-    .tab-btn {
-      background: none; border: none; border-bottom: 2px solid transparent;
-      color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.68rem;
-      text-transform: uppercase; letter-spacing: 0.12em; padding: 0 20px;
-      cursor: pointer; transition: color 0.15s, border-color 0.15s;
-      margin-bottom: -1px;
+    /* ── Shell ────────────────────────────────────────────────────────────── */
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
     }
-    .tab-btn:hover { color: #aaa; }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-    /* ── Content wrapper ── */
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 64px;
+      background: var(--bg);
+    }
+    .logo-wrap { display: flex; align-items: center; }
+    .logo-wrap img { height: 32px; width: auto; }
+    .logo-fallback {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.12em;
+      color: var(--text);
+    }
+    .header-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .stats-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 4px 12px;
+      letter-spacing: 0.05em;
+    }
+    .theme-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .theme-btn:hover { border-color: var(--accent-dim); color: var(--text); }
+
+    /* ── Tab bar ──────────────────────────────────────────────────────────── */
+    .tab-bar {
+      background: var(--tab-bar-bg);
+      border-bottom: 2px solid var(--border2);
+      padding: 0 40px;
+      display: flex;
+      gap: 4px;
+      align-items: flex-end;
+      height: 48px;
+    }
+    .tab-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      padding: 8px 22px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      margin-bottom: -2px;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active {
+      color: var(--text);
+      background: var(--tab-active-bg);
+      border-color: var(--border2);
+      border-bottom: 2px solid var(--tab-active-bg);
+    }
+
+    /* ── Content wrap ─────────────────────────────────────────────────────── */
     .content-wrap { overflow: hidden; display: grid; }
 
-    /* ── Search panel ── */
-    #panel-search { display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
+    /* ── Two-column panel ─────────────────────────────────────────────────── */
+    .panel-two-col { display: flex; overflow: hidden; }
 
-    /* ── Sidebar ── */
-    aside { border-right: 1px solid var(--border); padding: 32px 24px; display: flex; flex-direction: column; gap: 32px; overflow-y: auto; }
-    aside::-webkit-scrollbar { width: 3px; }
-    aside::-webkit-scrollbar-thumb { background: var(--border2); }
+    /* ── Sidebar ──────────────────────────────────────────────────────────── */
+    .sidebar {
+      position: relative;
+      width: 280px;
+      min-width: 140px;
+      max-width: 560px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      overflow-y: auto;
+    }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border2); }
 
+    .resize-handle {
+      position: absolute;
+      right: -4px;
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      cursor: col-resize;
+      z-index: 20;
+      background: transparent;
+      transition: background 0.15s;
+    }
+    .resize-handle:hover,
+    .resize-handle.dragging { background: rgba(128,128,128,0.2); }
+
+    /* ── Label ────────────────────────────────────────────────────────────── */
+    .label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+
+    /* ── Search input ─────────────────────────────────────────────────────── */
     .search-block { display: flex; flex-direction: column; gap: 10px; }
-
-    .label { font-family: 'DM Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
-
     .search-wrap { position: relative; }
     .search-wrap input {
-      width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 2px;
-      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.92rem; font-weight: 300;
-      padding: 10px 14px 10px 36px; outline: none; transition: border-color 0.2s; letter-spacing: 0.01em;
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 300;
+      padding: 10px 14px 10px 36px;
+      outline: none;
+      transition: border-color 0.2s;
     }
     .search-wrap input::placeholder { color: var(--muted); }
-    .search-wrap input:focus { border-color: #444; }
+    .search-wrap input:focus { border-color: var(--accent-dim); }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
 
-    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.9rem; pointer-events: none; }
-
-    /* folder list */
-    .folder-list { display: flex; flex-direction: column; gap: 1px; max-height: 360px; overflow-y: auto; }
+    /* ── Folder list ──────────────────────────────────────────────────────── */
+    .folder-list { display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
     .folder-list::-webkit-scrollbar { width: 3px; }
     .folder-list::-webkit-scrollbar-thumb { background: var(--border2); }
-
     .folder-btn {
-      background: none; border: none; color: var(--muted); font-family: 'DM Mono', monospace;
-      font-size: 0.72rem; text-align: left; padding: 6px 10px; border-radius: 2px; cursor: pointer;
-      transition: background 0.12s, color 0.12s; white-space: nowrap; overflow: hidden;
-      text-overflow: ellipsis; letter-spacing: 0.02em;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      text-align: left;
+      padding: 7px 10px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.02em;
     }
-    .folder-btn:hover { background: var(--surface2); color: #aaa; }
-    .folder-btn.active { background: #fff; color: #000; }
+    .folder-btn:hover { background: var(--surface2); color: var(--text); }
+    .folder-btn.active { background: var(--accent); color: var(--bg); font-weight: 500; }
 
-    /* ── Results area ── */
-    .results-area { padding: 32px 40px; overflow-y: auto; max-height: calc(100vh - 72px - 40px - 48px); }
+    /* ── Results area ─────────────────────────────────────────────────────── */
+    .results-area {
+      flex: 1;
+      padding: 28px 36px;
+      overflow-y: auto;
+      max-height: calc(100vh - 64px - 48px - 48px);
+    }
     .results-area::-webkit-scrollbar { width: 4px; }
     .results-area::-webkit-scrollbar-thumb { background: var(--border2); }
 
-    /* state messages */
-    .state-msg { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 16px; color: var(--muted); }
-    .state-msg .big-text { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; letter-spacing: 0.08em; color: #1a1a1a; line-height: 1; }
-    .state-msg p { font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+    /* ── State messages ───────────────────────────────────────────────────── */
+    .state-msg {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      gap: 16px;
+      color: var(--muted);
+    }
+    .state-msg .big-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 5rem;
+      letter-spacing: 0.08em;
+      color: var(--surface2);
+      line-height: 1;
+    }
+    .state-msg p {
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-family: 'DM Mono', monospace;
+    }
 
-    .result-meta { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.08em; }
-    .result-meta strong { color: #888; }
+    /* ── Result meta ──────────────────────────────────────────────────────── */
+    .result-meta {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .result-meta strong { color: var(--accent-dim); }
 
-    /* hit cards */
-    .hits-list { display: flex; flex-direction: column; gap: 1px; }
-
+    /* ── Hit cards ────────────────────────────────────────────────────────── */
+    .hits-list { display: flex; flex-direction: column; gap: 2px; }
     .hit-card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
-      padding: 14px 20px; display: grid; grid-template-columns: 80px 1fr;
-      gap: 0 20px; align-items: start; transition: background 0.15s, border-color 0.15s;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 0 20px;
+      align-items: start;
+      transition: background 0.15s, border-color 0.15s;
     }
     .hit-card:hover { background: var(--surface2); border-color: var(--border2); }
-
-    .ts-badge { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: #333; letter-spacing: 0.06em; line-height: 1; transition: color 0.15s; padding-top: 2px; }
-    .hit-card:hover .ts-badge { color: #fff; }
-
-    .hit-body { min-width: 0; }
-    .hit-path { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 0.05em; }
-    .hit-path .folder-tag { color: #444; margin-right: 2px; }
-    .hit-text { font-size: 0.87rem; color: #aaa; line-height: 1.45; font-weight: 300; }
-    .hit-card:hover .hit-text { color: var(--text); }
-    .hit-text mark { background: var(--mark-bg); color: var(--mark-fg); border-radius: 1px; padding: 0 2px; font-weight: 500; }
-
-    /* action buttons */
-    .hit-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
-
-    .action-btn {
-      background: none; border: 1px solid var(--border); color: var(--muted);
-      border-radius: 2px; padding: 3px 9px; font-size: 0.6rem;
-      font-family: 'DM Mono', monospace; cursor: pointer; letter-spacing: 0.07em;
-      text-transform: uppercase; transition: border-color 0.15s, color 0.15s;
-      white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    .ts-badge {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: var(--border2);
+      letter-spacing: 0.06em;
+      line-height: 1;
+      transition: color 0.15s;
+      padding-top: 2px;
     }
-    .action-btn:hover { border-color: #555; color: #ccc; }
-    .action-btn.primary { border-color: #333; color: #666; }
-    .action-btn.primary:hover { border-color: #aaa; color: #fff; }
-    .action-btn.copied { border-color: #fff; color: #fff; }
+    .hit-card:hover .ts-badge { color: var(--accent); }
+    .hit-body { min-width: 0; }
+    .hit-path {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.64rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .hit-path .folder-tag { color: var(--accent-dim); margin-right: 2px; }
+    .hit-text { font-size: 0.92rem; color: var(--accent-dim); line-height: 1.5; font-weight: 300; }
+    .hit-card:hover .hit-text { color: var(--text); }
+    .hit-text mark {
+      background: var(--mark-bg);
+      color: var(--mark-fg);
+      border-radius: 1px;
+      padding: 0 2px;
+      font-weight: 500;
+    }
 
-    /* loading */
+    /* ── Action buttons ───────────────────────────────────────────────────── */
+    .hit-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+    .action-btn {
+      background: none;
+      border: 1px solid var(--border2);
+      color: var(--accent-dim);
+      border-radius: 2px;
+      padding: 5px 12px;
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      white-space: nowrap;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(128,128,128,0.08); }
+    .action-btn.primary { border-color: var(--accent-dim); color: var(--text); }
+    .action-btn.primary:hover { border-color: var(--accent); background: rgba(128,128,128,0.08); }
+    .action-btn.copied { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Loading dots ─────────────────────────────────────────────────────── */
     .loading { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 80px; }
-    .dot { width: 5px; height: 5px; border-radius: 50%; background: #333; animation: pulse 1.2s ease-in-out infinite; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); animation: pulse 1.2s ease-in-out infinite; }
     .dot:nth-child(2) { animation-delay: 0.2s; }
     .dot:nth-child(3) { animation-delay: 0.4s; }
     @keyframes pulse { 0%,100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
 
-    /* ── Videos panel ── */
-    #panel-videos { padding: 32px 40px; overflow-y: auto; max-height: calc(100vh - 72px - 40px - 48px); }
-    #panel-videos::-webkit-scrollbar { width: 4px; }
-    #panel-videos::-webkit-scrollbar-thumb { background: var(--border2); }
+    /* ── Scene badge ──────────────────────────────────────────────────────── */
+    .scene-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.55rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 2px 6px;
+      border-radius: 2px;
+      margin-left: 6px;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      vertical-align: middle;
+    }
 
-    .videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1px; }
-
+    /* ── Videos panel ─────────────────────────────────────────────────────── */
+    .videos-meta {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .videos-meta strong { color: var(--accent-dim); }
+    .videos-folder-header {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      padding: 20px 0 10px;
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+    }
+    .videos-folder-header:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+    .videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2px; margin-bottom: 4px; }
     .vcard {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
-      padding: 16px 20px; transition: background 0.15s, border-color 0.15s;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 16px 20px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
     }
     .vcard:hover { background: var(--surface2); border-color: var(--border2); }
-    .vcard-folder { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: #444; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-    .vcard-name { font-size: 0.9rem; color: #ccc; font-weight: 400; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .vcard-meta { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 12px; }
+    .vcard-folder { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .vcard-name { font-size: 0.95rem; color: var(--text); font-weight: 400; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .vcard-meta { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); margin-bottom: 12px; }
     .vcard-actions { display: flex; gap: 5px; flex-wrap: wrap; }
 
-    .videos-meta { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.08em; }
-    .videos-meta strong { color: #888; }
-
-    /* ── Scenes panel ── */
-    #panel-scenes { display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
-
-    .scene-badge {
-      font-family: 'DM Mono', monospace; font-size: 0.55rem; text-transform: uppercase;
-      letter-spacing: 0.1em; padding: 2px 6px; border-radius: 2px; margin-left: 6px;
-      border: 1px solid #333; color: #555; vertical-align: middle;
-    }
-
-    @media (max-width: 700px) {
-      #panel-scenes { grid-template-columns: 1fr; }
-    }
-
-    /* ── Footer ── */
-    footer { border-top: 1px solid var(--border); padding: 0 40px; height: 48px; display: flex; align-items: center; justify-content: space-between; }
-    .footer-left { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
-    .footer-right { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; }
-    .footer-right a { color: #555; text-decoration: none; transition: color 0.15s; text-transform: uppercase; letter-spacing: 0.08em; }
-    .footer-right a:hover { color: #fff; }
-    .sep { color: #222; }
-
-    /* ── Modals ── */
+    /* ── Modal ────────────────────────────────────────────────────────────── */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.85);
       display: flex; align-items: center; justify-content: center;
       z-index: 1000; padding: 24px;
     }
     .modal-box {
-      background: var(--surface); border: 1px solid var(--border2); border-radius: 2px;
+      background: var(--surface); border: 1px solid var(--border2); border-radius: 3px;
       width: 100%; max-width: 760px; max-height: 88vh;
       display: flex; flex-direction: column; overflow: hidden;
     }
-    .modal-box--video { max-width: 960px; }
-
     .modal-head {
-      display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 16px; padding: 14px 20px;
       border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
-    .modal-title { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.1em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .modal-title {
+      font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--text);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     .modal-head-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
     .modal-body { overflow-y: auto; flex: 1; }
     .modal-body::-webkit-scrollbar { width: 4px; }
     .modal-body::-webkit-scrollbar-thumb { background: var(--border2); }
-
-    /* subtitle rows */
     .sub-row {
       display: grid; grid-template-columns: 90px 1fr;
       gap: 0 16px; padding: 10px 20px; border-bottom: 1px solid var(--border);
       transition: background 0.12s;
     }
     .sub-row:hover { background: var(--surface2); }
-    .sub-row.active { background: #1a1a1a; border-left: 2px solid #fff; padding-left: 18px; }
-    .sub-ts { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: #444; letter-spacing: 0.06em; padding-top: 1px; }
-    .sub-row.active .sub-ts { color: #888; }
-    .sub-text { font-size: 0.87rem; color: #888; font-weight: 300; line-height: 1.45; }
+    .sub-row.active { background: var(--surface2); border-left: 2px solid var(--accent); padding-left: 18px; }
+    .sub-ts { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--muted); letter-spacing: 0.06em; padding-top: 1px; }
+    .sub-row.active .sub-ts { color: var(--accent-dim); }
+    .sub-text { font-size: 0.9rem; color: var(--muted); font-weight: 300; line-height: 1.5; }
     .sub-row.active .sub-text { color: var(--text); }
 
-    /* video player */
-    #video-player { width: 100%; display: block; background: #000; max-height: calc(88vh - 60px); }
+    /* ── Footer ───────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 0 40px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg);
+    }
+    .footer-left { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .footer-right { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .footer-right a { color: var(--muted); text-decoration: none; transition: color 0.15s; text-transform: uppercase; letter-spacing: 0.08em; }
+    .footer-right a:hover { color: var(--text); }
+    .sep { color: var(--border2); }
 
+    /* ── Responsive ───────────────────────────────────────────────────────── */
     @media (max-width: 700px) {
-      #panel-search { grid-template-columns: 1fr; }
-      aside { border-right: none; border-bottom: 1px solid var(--border); }
-      header { padding: 0 20px; }
-      .tab-bar { padding: 0 20px; }
-      .results-area { padding: 20px; }
-      #panel-videos { padding: 20px; }
-      footer { padding: 0 20px; }
+      .panel-two-col { flex-direction: column; }
+      .sidebar { width: 100% !important; max-width: none; border-right: none; border-bottom: 1px solid var(--border); }
+      .resize-handle { display: none; }
+      header, footer { padding: 0 20px; }
+      .tab-bar { padding: 0 16px; overflow-x: auto; }
+      .results-area { padding: 16px; max-height: none; }
       .hit-card { grid-template-columns: 60px 1fr; }
       .videos-grid { grid-template-columns: 1fr; }
     }
@@ -248,12 +500,13 @@
 
   <header>
     <div class="logo-wrap">
-      <img src="/static/logo.png" alt="Studio Hexata" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-      <span style="display:none; font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:0.1em; color:#fff;">STUDIO HEXATA</span>
+      <img id="header-logo" src="" alt="Logo" style="display:none">
+      <span id="header-logo-fallback" class="logo-fallback">VidFind</span>
     </div>
-    <div class="header-center">
-      <span class="header-title">Acervo de Vídeos · Busca por Conteúdo</span>
+    <span class="header-title hidden" id="header-title"></span>
+    <div class="header-right">
       <div class="stats-pill" id="stats-pill">Carregando…</div>
+      <button class="theme-btn" id="theme-toggle">◐ Tema</button>
     </div>
   </header>
 
@@ -264,9 +517,10 @@
   </nav>
 
   <div class="content-wrap">
-    <!-- Search panel -->
-    <main id="panel-search">
-      <aside>
+
+    <!-- ── Legendas ── -->
+    <main id="panel-search" class="panel-two-col">
+      <aside class="sidebar" id="search-sidebar">
         <div class="search-block">
           <div class="label">Buscar fala</div>
           <div class="search-wrap">
@@ -280,19 +534,19 @@
             <button class="folder-btn active" data-folder="">Todas</button>
           </div>
         </div>
+        <div class="resize-handle"></div>
       </aside>
-
       <section class="results-area" id="results-area">
         <div class="state-msg">
-          <div class="big-text">HEXATA</div>
+          <div class="big-text">BUSCA</div>
           <p>Digite para buscar nos vídeos</p>
         </div>
       </section>
     </main>
 
-    <!-- Scenes panel -->
-    <main id="panel-scenes" class="hidden">
-      <aside>
+    <!-- ── Cenas ── -->
+    <main id="panel-scenes" class="panel-two-col hidden">
+      <aside class="sidebar" id="scenes-sidebar">
         <div class="search-block">
           <div class="label">Buscar cena</div>
           <div class="search-wrap">
@@ -306,8 +560,8 @@
             <button class="folder-btn active" data-folder="">Todas</button>
           </div>
         </div>
+        <div class="resize-handle"></div>
       </aside>
-
       <section class="results-area" id="scenes-results">
         <div class="state-msg">
           <div class="big-text">CENAS</div>
@@ -316,16 +570,28 @@
       </section>
     </main>
 
-    <!-- Videos panel -->
-    <section id="panel-videos" class="hidden">
-      <div class="state-msg">
-        <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <!-- ── Vídeos ── -->
+    <section id="panel-videos" class="panel-two-col hidden">
+      <aside class="sidebar" id="videos-sidebar">
+        <div>
+          <div class="label" style="margin-bottom:10px;">Filtrar pasta</div>
+          <div class="folder-list" id="videos-folder-list">
+            <button class="folder-btn active" data-folder="">Todas</button>
+          </div>
+        </div>
+        <div class="resize-handle"></div>
+      </aside>
+      <div class="results-area" id="videos-results">
+        <div class="state-msg">
+          <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>
       </div>
     </section>
+
   </div>
 
   <footer>
-    <div class="footer-left">Studio Hexata · Sistema de Busca de Acervo</div>
+    <div class="footer-left" id="footer-left"><a href="https://github.com/dcbasso/VidFind" target="_blank" rel="noopener">VidFind</a> · Busca por Conteúdo</div>
     <div class="footer-right">
       <span>Powered by</span>
       <a href="https://dantebasso.com.br" target="_blank" rel="noopener">Dante Basso</a>
@@ -336,7 +602,7 @@
 
 </div>
 
-<!-- ── Modal: Legenda completa ───────────────────────────────────────────── -->
+<!-- ── Modal: Legenda rápida ─────────────────────────────────────────────── -->
 <div class="modal-overlay hidden" id="modal-subtitle" role="dialog" aria-modal="true">
   <div class="modal-box">
     <div class="modal-head">
@@ -353,50 +619,113 @@
   </div>
 </div>
 
-<!-- ── Modal: Player de vídeo ────────────────────────────────────────────── -->
-<div class="modal-overlay hidden" id="modal-video" role="dialog" aria-modal="true">
-  <div class="modal-box modal-box--video">
-    <div class="modal-head">
-      <span class="modal-title" id="modal-video-title">Player</span>
-      <button class="action-btn" onclick="closeModal('modal-video')">✕ Fechar</button>
-    </div>
-    <video id="video-player" controls></video>
-  </div>
-</div>
-
 <script>
-  // ── Utilities ────────────────────────────────────────────────────────────
+  // ── Utils ─────────────────────────────────────────────────────────────────
   function escHtml(s) {
     return String(s ?? "")
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
-
   function loading() {
     return `<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
   }
 
-  // ── State ─────────────────────────────────────────────────────────────────
-  let debounceTimer        = null;
-  let activeFolder         = "";
-  let videosLoaded         = false;
-  let scenesDebounceTimer  = null;
-  let scenesActiveFolder   = "";
-  let scenesFoldersLoaded  = false;
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  const THEMES = ["dark", "mid", "light"];
+  let themeIndex = 0;
 
-  const input      = document.getElementById("search-input");
-  const resultArea = document.getElementById("results-area");
-  const folderList = document.getElementById("folder-list");
-  const statsPill  = document.getElementById("stats-pill");
+  function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    localStorage.setItem("theme", t);
+    themeIndex = Math.max(0, THEMES.indexOf(t));
+  }
+
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme && THEMES.includes(savedTheme)) applyTheme(savedTheme);
+
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    applyTheme(THEMES[(themeIndex + 1) % THEMES.length]);
+  });
+
+  // ── Config ────────────────────────────────────────────────────────────────
+  fetch("/api/config").then(r => r.json()).then(cfg => {
+    if (cfg.logo_url) {
+      const img = document.getElementById("header-logo");
+      img.src = cfg.logo_url;
+      img.style.display = "block";
+      const fallback = document.getElementById("header-logo-fallback");
+      fallback.style.display = "none";
+      img.onerror = () => {
+        img.style.display = "none";
+        fallback.style.display = "block";
+        if (cfg.title) fallback.textContent = cfg.title;
+      };
+    } else if (cfg.title) {
+      document.getElementById("header-logo-fallback").textContent = cfg.title;
+    }
+    if (cfg.title) {
+      document.title = cfg.title;
+    }
+    if (!savedTheme && cfg.theme && THEMES.includes(cfg.theme)) applyTheme(cfg.theme);
+  }).catch(() => {});
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   fetch("/api/stats").then(r => r.json()).then(d => {
     const sub = d.numberOfDocuments ?? 0;
     const vis = d.sceneDocuments ?? 0;
-    statsPill.textContent = `${Number(sub).toLocaleString("pt-BR")} legendas · ${Number(vis).toLocaleString("pt-BR")} cenas`;
-  }).catch(() => { statsPill.textContent = "offline"; });
+    document.getElementById("stats-pill").textContent =
+      `${Number(sub).toLocaleString("pt-BR")} legendas · ${Number(vis).toLocaleString("pt-BR")} cenas`;
+  }).catch(() => { document.getElementById("stats-pill").textContent = "offline"; });
 
-  // ── Folders ───────────────────────────────────────────────────────────────
+  // ── Sidebar resize ────────────────────────────────────────────────────────
+  function initResize(sidebarId) {
+    const sidebar = document.getElementById(sidebarId);
+    if (!sidebar) return;
+    const handle = sidebar.querySelector(".resize-handle");
+    if (!handle) return;
+    const saved = localStorage.getItem("sidebar-w-" + sidebarId);
+    if (saved) sidebar.style.width = saved;
+
+    let dragging = false, startX = 0, startW = 0;
+
+    handle.addEventListener("mousedown", e => {
+      dragging = true;
+      startX = e.clientX;
+      startW = sidebar.offsetWidth;
+      handle.classList.add("dragging");
+      document.body.classList.add("resizing");
+      e.preventDefault();
+    });
+    document.addEventListener("mousemove", e => {
+      if (!dragging) return;
+      const w = Math.max(140, Math.min(560, startW + e.clientX - startX));
+      sidebar.style.width = w + "px";
+    });
+    document.addEventListener("mouseup", () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove("dragging");
+      document.body.classList.remove("resizing");
+      localStorage.setItem("sidebar-w-" + sidebarId, sidebar.style.width);
+    });
+  }
+  initResize("search-sidebar");
+  initResize("scenes-sidebar");
+  initResize("videos-sidebar");
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let debounceTimer       = null;
+  let activeFolder        = "";
+  let scenesDebounceTimer = null;
+  let scenesActiveFolder  = "";
+  let scenesFoldersLoaded = false;
+  let videosLoaded        = false;
+  let videosActiveFolder  = "";
+  let allVideos           = [];
+
+  // ── Folders (search tab) ──────────────────────────────────────────────────
+  const folderList = document.getElementById("folder-list");
+
   fetch("/api/folders").then(r => r.json()).then(folders => {
     folders.forEach(f => {
       const btn = document.createElement("button");
@@ -431,7 +760,10 @@
     if (tab === "scenes" && !scenesFoldersLoaded) loadScenesFolders();
   });
 
-  // ── Search ────────────────────────────────────────────────────────────────
+  // ── Search (Legendas) ─────────────────────────────────────────────────────
+  const input      = document.getElementById("search-input");
+  const resultArea = document.getElementById("results-area");
+
   input.addEventListener("input", () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(doSearch, 280);
@@ -440,7 +772,7 @@
   function doSearch() {
     const q = input.value.trim();
     if (!q) {
-      resultArea.innerHTML = `<div class="state-msg"><div class="big-text">HEXATA</div><p>Digite para buscar nos vídeos</p></div>`;
+      resultArea.innerHTML = `<div class="state-msg"><div class="big-text">BUSCA</div><p>Digite para buscar nos vídeos</p></div>`;
       return;
     }
     resultArea.innerHTML = loading();
@@ -459,11 +791,12 @@
       resultArea.innerHTML = `<div class="state-msg"><div class="big-text">—</div><p>Nenhum resultado encontrado</p></div>`;
       return;
     }
-    const meta = `<div class="result-meta"><strong>${data.hits.length}</strong> resultado${data.hits.length !== 1 ? "s" : ""}${data.total > data.hits.length ? ` de ~${data.total}` : ""}</div>`;
+    const total = data.total > data.hits.length ? ` de ~${data.total}` : "";
+    const meta  = `<div class="result-meta"><strong>${data.hits.length}</strong> resultado${data.hits.length !== 1 ? "s" : ""}${total}</div>`;
     const cards = data.hits.map(h => {
       const folder = h.folder && h.folder !== "." ? `<span class="folder-tag">${escHtml(h.folder)}/</span>` : "";
-      const vp  = encodeURIComponent(h.video_path);
-      const start = parseFloat(h.start) || 0;
+      const vp     = encodeURIComponent(h.video_path);
+      const start  = parseFloat(h.start) || 0;
       return `
         <div class="hit-card">
           <div class="ts-badge">${escHtml(h.timestamp)}</div>
@@ -471,11 +804,7 @@
             <div class="hit-path">${folder}${escHtml(h.video_name)}</div>
             <div class="hit-text">${h.text}</div>
             <div class="hit-actions">
-              <button class="action-btn primary"
-                      data-action="play"
-                      data-path="${escHtml(h.video_path)}"
-                      data-start="${start}"
-                      data-name="${escHtml(h.video_name)}">▶ Assistir</button>
+              <a class="action-btn primary" href="/video?path=${vp}&t=${start}">▶ Ver Vídeo</a>
               <button class="action-btn"
                       data-action="subtitle"
                       data-path="${escHtml(h.video_path)}"
@@ -495,17 +824,15 @@
     resultArea.innerHTML = meta + `<div class="hits-list">${cards}</div>`;
   }
 
-  // Delegate card action clicks
-  document.getElementById("results-area").addEventListener("click", e => {
+  resultArea.addEventListener("click", e => {
     const btn = e.target.closest("[data-action]");
     if (!btn) return;
     const { action, path, start, name, ts } = btn.dataset;
-    if (action === "play")     openVideoModal(path, parseFloat(start), name);
     if (action === "subtitle") openSubtitleModal(path, parseFloat(start), name);
     if (action === "copy")     copyBtn(btn, name, ts);
   });
 
-  // ── Scenes tab ───────────────────────────────────────────────────────────
+  // ── Cenas ─────────────────────────────────────────────────────────────────
   const scenesInput      = document.getElementById("scenes-input");
   const scenesResultArea = document.getElementById("scenes-results");
   const scenesFolderList = document.getElementById("scenes-folder-list");
@@ -560,11 +887,12 @@
       scenesResultArea.innerHTML = `<div class="state-msg"><div class="big-text">—</div><p>Nenhuma cena encontrada</p></div>`;
       return;
     }
-    const meta = `<div class="result-meta"><strong>${data.hits.length}</strong> cena${data.hits.length !== 1 ? "s" : ""}${data.total > data.hits.length ? ` de ~${data.total}` : ""}</div>`;
+    const total = data.total > data.hits.length ? ` de ~${data.total}` : "";
+    const meta  = `<div class="result-meta"><strong>${data.hits.length}</strong> cena${data.hits.length !== 1 ? "s" : ""}${total}</div>`;
     const cards = data.hits.map(h => {
       const folder = h.folder && h.folder !== "." ? `<span class="folder-tag">${escHtml(h.folder)}/</span>` : "";
-      const vp    = encodeURIComponent(h.video_path);
-      const start = parseFloat(h.start) || 0;
+      const vp     = encodeURIComponent(h.video_path);
+      const start  = parseFloat(h.start) || 0;
       return `
         <div class="hit-card">
           <div class="ts-badge">${escHtml(h.timestamp)}</div>
@@ -572,11 +900,7 @@
             <div class="hit-path">${folder}${escHtml(h.video_name)}<span class="scene-badge">cena</span></div>
             <div class="hit-text">${h.description}</div>
             <div class="hit-actions">
-              <button class="action-btn primary"
-                      data-action="play"
-                      data-path="${escHtml(h.video_path)}"
-                      data-start="${start}"
-                      data-name="${escHtml(h.video_name)}">▶ Assistir</button>
+              <a class="action-btn primary" href="/video?path=${vp}&t=${start}">▶ Ver Vídeo</a>
               <a class="action-btn" href="/api/video?path=${vp}&download=1" download>↓ Vídeo</a>
               <button class="action-btn"
                       data-action="copy"
@@ -589,73 +913,103 @@
     scenesResultArea.innerHTML = meta + `<div class="hits-list">${cards}</div>`;
   }
 
-  document.getElementById("scenes-results").addEventListener("click", e => {
+  scenesResultArea.addEventListener("click", e => {
     const btn = e.target.closest("[data-action]");
     if (!btn) return;
-    const { action, path, start, name, ts } = btn.dataset;
-    if (action === "play") openVideoModal(path, parseFloat(start), name);
+    const { action, name, ts } = btn.dataset;
     if (action === "copy") copyBtn(btn, name, ts);
   });
 
-  // ── Videos tab ───────────────────────────────────────────────────────────
+  // ── Vídeos ────────────────────────────────────────────────────────────────
+  const videosFolderList = document.getElementById("videos-folder-list");
+  const videosResults    = document.getElementById("videos-results");
+
+  videosFolderList.addEventListener("click", e => {
+    const btn = e.target.closest(".folder-btn");
+    if (!btn) return;
+    videosFolderList.querySelectorAll(".folder-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    videosActiveFolder = btn.dataset.folder;
+    renderFilteredVideos();
+  });
+
   function loadVideos() {
-    const panel = document.getElementById("panel-videos");
-    panel.innerHTML = loading();
+    videosResults.innerHTML = loading();
     fetch("/api/videos")
       .then(r => r.json())
-      .then(renderVideos)
+      .then(list => {
+        allVideos = list || [];
+        const folders = [...new Set(allVideos.map(v => v.folder).filter(Boolean))].sort();
+        videosFolderList.innerHTML = `<button class="folder-btn active" data-folder="">Todas</button>`;
+        folders.forEach(f => {
+          const btn = document.createElement("button");
+          btn.className = "folder-btn";
+          btn.dataset.folder = f;
+          btn.textContent = f === "." ? "(raiz)" : f;
+          btn.title = f;
+          videosFolderList.appendChild(btn);
+        });
+        renderFilteredVideos();
+      })
       .catch(() => {
-        panel.innerHTML = `<div class="state-msg"><div class="big-text">ERR</div><p>Erro ao carregar vídeos</p></div>`;
+        videosResults.innerHTML = `<div class="state-msg"><div class="big-text">ERR</div><p>Erro ao carregar vídeos</p></div>`;
       });
     videosLoaded = true;
   }
 
-  function renderVideos(list) {
-    const panel = document.getElementById("panel-videos");
-    if (!list || list.length === 0) {
-      panel.innerHTML = `<div class="state-msg"><div class="big-text">—</div><p>Nenhum vídeo indexado</p></div>`;
+  function renderFilteredVideos() {
+    const filtered = videosActiveFolder
+      ? allVideos.filter(v => v.folder === videosActiveFolder)
+      : allVideos;
+
+    if (filtered.length === 0) {
+      videosResults.innerHTML = `<div class="state-msg"><div class="big-text">—</div><p>Nenhum vídeo encontrado</p></div>`;
       return;
     }
-    const meta = `<div class="videos-meta"><strong>${list.length}</strong> vídeo${list.length !== 1 ? "s" : ""} indexado${list.length !== 1 ? "s" : ""}</div>`;
-    const cards = list.map(v => {
-      const vp  = encodeURIComponent(v.video_path);
-      const folder = v.folder && v.folder !== "." ? v.folder : "(raiz)";
-      return `
-        <div class="vcard">
-          <div class="vcard-folder">${escHtml(folder)}</div>
-          <div class="vcard-name" title="${escHtml(v.video_name)}">${escHtml(v.video_name)}</div>
-          <div class="vcard-meta">${v.segment_count} segmento${v.segment_count !== 1 ? "s" : ""}</div>
-          <div class="vcard-actions">
-            <button class="action-btn primary"
-                    data-action="subtitle"
-                    data-path="${escHtml(v.video_path)}"
-                    data-start="0"
-                    data-name="${escHtml(v.video_name)}">≡ Legenda</button>
-            <a class="action-btn" href="/api/subtitle?video_path=${vp}" download>↓ SRT</a>
-            <a class="action-btn" href="/api/transcript/txt?video_path=${vp}" download>↓ TXT</a>
-            <a class="action-btn" href="/api/video?path=${vp}&download=1" download>↓ Vídeo</a>
-          </div>
-        </div>`;
-    }).join("");
-    panel.innerHTML = meta + `<div class="videos-grid">${cards}</div>`;
 
-    panel.addEventListener("click", e => {
-      const btn = e.target.closest("[data-action]");
-      if (!btn) return;
-      const { action, path, start, name } = btn.dataset;
-      if (action === "subtitle") openSubtitleModal(path, parseFloat(start), name);
-    }, { once: true });
+    // Group by folder
+    const groups = {};
+    filtered.forEach(v => {
+      const key = v.folder && v.folder !== "." ? v.folder : "(raiz)";
+      (groups[key] = groups[key] || []).push(v);
+    });
+
+    const showHeaders = Object.keys(groups).length > 1;
+    let html = `<div class="videos-meta"><strong>${filtered.length}</strong> vídeo${filtered.length !== 1 ? "s" : ""}</div>`;
+
+    Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).forEach(([folder, vids]) => {
+      if (showHeaders) html += `<div class="videos-folder-header">▸ ${escHtml(folder)}</div>`;
+      html += `<div class="videos-grid">`;
+      vids.forEach(v => {
+        const vp     = encodeURIComponent(v.video_path);
+        const folder = v.folder && v.folder !== "." ? v.folder : "(raiz)";
+        html += `
+          <div class="vcard" data-video-path="${escHtml(v.video_path)}">
+            <div class="vcard-folder">${escHtml(folder)}</div>
+            <div class="vcard-name" title="${escHtml(v.video_name)}">${escHtml(v.video_name)}</div>
+            <div class="vcard-meta">${v.segment_count} segmento${v.segment_count !== 1 ? "s" : ""}</div>
+            <div class="vcard-actions" onclick="event.stopPropagation()">
+              <a class="action-btn primary" href="/video?path=${vp}">▶ Ver Vídeo</a>
+              <a class="action-btn" href="/api/subtitle?video_path=${vp}" download>↓ SRT</a>
+              <a class="action-btn" href="/api/transcript/txt?video_path=${vp}" download>↓ TXT</a>
+              <a class="action-btn" href="/api/video?path=${vp}&download=1" download>↓ Vídeo</a>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+    });
+
+    videosResults.innerHTML = html;
+
+    videosResults.querySelectorAll(".vcard").forEach(card => {
+      card.addEventListener("click", e => {
+        if (e.target.closest(".vcard-actions")) return;
+        window.location.href = `/video?path=${encodeURIComponent(card.dataset.videoPath)}`;
+      });
+    });
   }
 
-  // Re-delegate videos panel (called each render)
-  document.getElementById("panel-videos").addEventListener("click", e => {
-    const btn = e.target.closest("[data-action]");
-    if (!btn) return;
-    const { action, path, start, name } = btn.dataset;
-    if (action === "subtitle") openSubtitleModal(path, parseFloat(start), name);
-  });
-
-  // ── Modal: Subtitle ───────────────────────────────────────────────────────
+  // ── Modal: Legenda rápida ─────────────────────────────────────────────────
   function openSubtitleModal(videoPath, highlightStart, videoName) {
     const modal = document.getElementById("modal-subtitle");
     const body  = document.getElementById("modal-subtitle-body");
@@ -675,8 +1029,8 @@
           return;
         }
         const rows = data.segments.map(seg => {
-          const isActive = highlightStart !== null && Math.abs(seg.start - highlightStart) < 0.5;
-          return `<div class="sub-row${isActive ? " active" : ""}" data-start="${seg.start}">
+          const active = highlightStart !== null && Math.abs(seg.start - highlightStart) < 0.5;
+          return `<div class="sub-row${active ? " active" : ""}" data-start="${seg.start}">
             <span class="sub-ts">${escHtml(seg.timestamp)}</span>
             <span class="sub-text">${escHtml(seg.text)}</span>
           </div>`;
@@ -690,52 +1044,17 @@
       });
   }
 
-  // ── Modal: Video player ───────────────────────────────────────────────────
-  function openVideoModal(videoPath, startSeconds, videoName) {
-    const modal  = document.getElementById("modal-video");
-    const player = document.getElementById("video-player");
-    document.getElementById("modal-video-title").textContent = videoName || videoPath;
-    modal.classList.remove("hidden");
-    document.body.style.overflow = "hidden";
-
-    player.pause();
-    player.removeAttribute("src");
-    player.load();
-    player.src = `/api/video?path=${encodeURIComponent(videoPath)}`;
-
-    const seekTo = Math.max(0, (startSeconds || 0) - 1);
-    if (seekTo > 0) {
-      player.addEventListener("loadedmetadata", () => {
-        player.currentTime = seekTo;
-      }, { once: true });
-    }
-    player.play().catch(() => {});
-  }
-
-  // ── Modal: Close ─────────────────────────────────────────────────────────
   function closeModal(id) {
     document.getElementById(id).classList.add("hidden");
     document.body.style.overflow = "";
-    if (id === "modal-video") {
-      const player = document.getElementById("video-player");
-      player.pause();
-      player.removeAttribute("src");
-      player.load();
-    }
   }
 
-  // Close modal on overlay click
   document.querySelectorAll(".modal-overlay").forEach(overlay => {
-    overlay.addEventListener("click", e => {
-      if (e.target === overlay) closeModal(overlay.id);
-    });
+    overlay.addEventListener("click", e => { if (e.target === overlay) closeModal(overlay.id); });
   });
-
-  // Close modal on Escape
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape") {
+    if (e.key === "Escape")
       document.querySelectorAll(".modal-overlay:not(.hidden)").forEach(m => closeModal(m.id));
-    }
   });
 
   // ── Copy ──────────────────────────────────────────────────────────────────

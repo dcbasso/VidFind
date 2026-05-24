@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VidFind · Vídeo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Themes ───────────────────────────────────────────────────────────── */
+    :root, [data-theme="dark"] {
+      --bg:           #000000;
+      --surface:      #0d0d0d;
+      --surface2:     #141414;
+      --border:       #222222;
+      --border2:      #2e2e2e;
+      --accent:       #ffffff;
+      --accent-dim:   #666666;
+      --text:         #f0f0f0;
+      --muted:        #555555;
+      --tab-bar-bg:   #080808;
+      --tab-active-bg:#000000;
+    }
+    [data-theme="mid"] {
+      --bg:           #141414;
+      --surface:      #1e1e1e;
+      --surface2:     #272727;
+      --border:       #333333;
+      --border2:      #3d3d3d;
+      --accent:       #e8e8e8;
+      --accent-dim:   #777777;
+      --text:         #e0e0e0;
+      --muted:        #666666;
+      --tab-bar-bg:   #0e0e0e;
+      --tab-active-bg:#141414;
+    }
+    [data-theme="light"] {
+      --bg:           #f4f4f4;
+      --surface:      #ffffff;
+      --surface2:     #eeeeee;
+      --border:       #dddddd;
+      --border2:      #cccccc;
+      --accent:       #111111;
+      --accent-dim:   #555555;
+      --text:         #111111;
+      --muted:        #888888;
+      --tab-bar-bg:   #e4e4e4;
+      --tab-active-bg:#f4f4f4;
+    }
+
+    /* ── Base ─────────────────────────────────────────────────────────────── */
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow: hidden;
+    }
+
+    /* ── Shell: header + content + footer, 100vh ─────────────────────────── */
+    .shell {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 64px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .logo-wrap { display: flex; align-items: center; }
+    .logo-wrap img { height: 32px; width: auto; }
+    .logo-fallback { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.12em; color: var(--text); }
+    .header-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .theme-btn {
+      background: none; border: 1px solid var(--border); border-radius: 2px;
+      color: var(--muted); font-family: 'DM Mono', monospace;
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 5px 12px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .theme-btn:hover { border-color: var(--accent-dim); color: var(--text); }
+
+    /* ── Video layout (fills the 1fr row) ────────────────────────────────── */
+    .video-layout {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* Player */
+    .player-wrap { background: #000; flex-shrink: 0; }
+    #video-player { width: 100%; max-height: 54vh; display: block; }
+
+    /* Info bar */
+    .video-info-bar {
+      border-bottom: 1px solid var(--border);
+      padding: 12px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+    .video-info-text { flex: 1; min-width: 0; }
+    .video-folder {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 2px;
+    }
+    .video-name {
+      font-size: 0.95rem;
+      color: var(--text);
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .video-info-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+
+    /* ── Detail tab bar ───────────────────────────────────────────────────── */
+    .detail-tab-bar {
+      background: var(--tab-bar-bg);
+      border-bottom: 2px solid var(--border2);
+      padding: 0 32px;
+      display: flex;
+      gap: 4px;
+      align-items: flex-end;
+      height: 44px;
+      flex-shrink: 0;
+    }
+    .detail-tab {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      padding: 7px 20px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: -2px;
+    }
+    .detail-tab:hover { color: var(--text); background: var(--surface2); }
+    .detail-tab.active {
+      color: var(--text);
+      background: var(--tab-active-bg);
+      border-color: var(--border2);
+      border-bottom: 2px solid var(--tab-active-bg);
+    }
+
+    /* ── Detail content panes ────────────────────────────────────────────── */
+    .detail-pane {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .detail-pane::-webkit-scrollbar { width: 4px; }
+    .detail-pane::-webkit-scrollbar-thumb { background: var(--border2); }
+    .detail-pane.hidden { display: none; }
+
+    /* Subtitle rows */
+    .sub-row {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 0 16px;
+      padding: 10px 32px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .sub-row:hover { background: var(--surface2); }
+    .sub-row.active { background: var(--surface2); border-left: 2px solid var(--accent); padding-left: 30px; }
+    .sub-ts {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.15rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      padding-top: 2px;
+    }
+    .sub-row.active .sub-ts { color: var(--accent-dim); }
+    .sub-text { font-size: 0.92rem; color: var(--muted); font-weight: 300; line-height: 1.5; }
+    .sub-row:hover .sub-text,
+    .sub-row.active .sub-text { color: var(--text); }
+
+    /* Scene rows */
+    .scene-row {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 0 16px;
+      padding: 12px 32px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    .scene-row:hover { background: var(--surface2); }
+    .scene-ts {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.15rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      padding-top: 2px;
+    }
+    .scene-desc { font-size: 0.92rem; color: var(--muted); font-weight: 300; line-height: 1.55; }
+    .scene-row:hover .scene-desc { color: var(--text); }
+
+    /* ── State / loading ─────────────────────────────────────────────────── */
+    .state-msg {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 160px; gap: 12px; color: var(--muted);
+    }
+    .state-msg p { font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+    .loading { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 60px; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); animation: pulse 1.2s ease-in-out infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+    /* ── Action buttons ───────────────────────────────────────────────────── */
+    .action-btn {
+      background: none; border: 1px solid var(--border2); color: var(--accent-dim);
+      border-radius: 2px; padding: 5px 12px; font-size: 0.72rem;
+      font-family: 'DM Mono', monospace; cursor: pointer; letter-spacing: 0.06em;
+      text-transform: uppercase; transition: border-color 0.15s, color 0.15s, background 0.15s;
+      white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(128,128,128,0.08); }
+
+    /* ── Footer ───────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 0 40px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .footer-left { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .footer-right { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .footer-right a { color: var(--muted); text-decoration: none; transition: color 0.15s; text-transform: uppercase; letter-spacing: 0.08em; }
+    .footer-right a:hover { color: var(--text); }
+    .sep { color: var(--border2); }
+
+    /* ── Responsive ───────────────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      header, footer { padding: 0 20px; }
+      .video-info-bar { padding: 12px 20px; flex-direction: column; align-items: flex-start; height: auto; }
+      .detail-tab-bar { padding: 0 16px; }
+      .sub-row, .scene-row { grid-template-columns: 80px 1fr; padding: 10px 16px; }
+      .sub-row.active { padding-left: 14px; }
+      #video-player { max-height: 40vh; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="logo-wrap">
+      <img id="header-logo" src="" alt="Logo" style="display:none">
+      <span id="header-logo-fallback" class="logo-fallback">VidFind</span>
+    </div>
+    <span class="header-title hidden" id="header-title"></span>
+    <div class="header-right">
+      <a href="/" id="btn-back" class="action-btn">← Voltar</a>
+      <button class="theme-btn" id="theme-toggle">◐ Tema</button>
+    </div>
+  </header>
+
+  <div class="video-layout">
+
+    <div class="player-wrap">
+      <video id="video-player" controls></video>
+    </div>
+
+    <div class="video-info-bar">
+      <div class="video-info-text">
+        <div class="video-folder" id="detail-folder">—</div>
+        <div class="video-name" id="detail-name">Carregando…</div>
+      </div>
+      <div class="video-info-actions">
+        <a id="btn-dl-srt"    class="action-btn" href="#" download>↓ SRT</a>
+        <a id="btn-dl-txt"    class="action-btn" href="#" download>↓ TXT</a>
+        <a id="btn-dl-scenes" class="action-btn" href="#" download>↓ Cenas</a>
+        <a id="btn-dl-video"  class="action-btn" href="#" download>↓ Vídeo</a>
+      </div>
+    </div>
+
+    <nav class="detail-tab-bar">
+      <button class="detail-tab active" data-pane="subtitles">≡ Legenda</button>
+      <button class="detail-tab" data-pane="scenes">⬡ Cenas</button>
+    </nav>
+
+    <div class="detail-pane" id="pane-subtitles">
+      <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+
+    <div class="detail-pane hidden" id="pane-scenes">
+      <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="footer-left" id="footer-left"><a href="https://github.com/dcbasso/VidFind" target="_blank" rel="noopener">VidFind</a> · Detalhe do Vídeo</div>
+    <div class="footer-right">
+      <span>Powered by</span>
+      <a href="https://dantebasso.com.br" target="_blank" rel="noopener">Dante Basso</a>
+      <span class="sep">·</span>
+      <a href="https://dantebasso.com.br" target="_blank" rel="noopener">dantebasso.com.br</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // ── Utils ─────────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function loading() {
+    return `<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  }
+
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  const THEMES = ["dark", "mid", "light"];
+  let themeIndex = 0;
+
+  function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    localStorage.setItem("theme", t);
+    themeIndex = Math.max(0, THEMES.indexOf(t));
+  }
+
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme && THEMES.includes(savedTheme)) applyTheme(savedTheme);
+
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    applyTheme(THEMES[(themeIndex + 1) % THEMES.length]);
+  });
+
+  // ── Config ────────────────────────────────────────────────────────────────
+  fetch("/api/config").then(r => r.json()).then(cfg => {
+    if (cfg.logo_url) {
+      const img = document.getElementById("header-logo");
+      img.src = cfg.logo_url;
+      img.style.display = "block";
+      const fallback = document.getElementById("header-logo-fallback");
+      fallback.style.display = "none";
+      img.onerror = () => {
+        img.style.display = "none";
+        fallback.style.display = "block";
+        if (cfg.title) fallback.textContent = cfg.title;
+      };
+    } else if (cfg.title) {
+      document.getElementById("header-logo-fallback").textContent = cfg.title;
+    }
+    if (cfg.title) {
+      document.getElementById("footer-left").textContent = cfg.title + " · Detalhe";
+    }
+    if (!savedTheme && cfg.theme && THEMES.includes(cfg.theme)) applyTheme(cfg.theme);
+  }).catch(() => {});
+
+  // ── Back button ───────────────────────────────────────────────────────────
+  document.getElementById("btn-back").addEventListener("click", e => {
+    e.preventDefault();
+    if (document.referrer && new URL(document.referrer).origin === location.origin) {
+      history.back();
+    } else {
+      location.href = "/";
+    }
+  });
+
+  // ── URL params ────────────────────────────────────────────────────────────
+  const params    = new URLSearchParams(location.search);
+  const videoPath = params.get("path") || "";
+  const startSec  = parseFloat(params.get("t") || "0") || 0;
+
+  if (!videoPath) {
+    document.getElementById("detail-name").textContent = "Parâmetro path ausente";
+  }
+
+  // ── Player setup ──────────────────────────────────────────────────────────
+  const player = document.getElementById("video-player");
+  const vp     = encodeURIComponent(videoPath);
+
+  player.src = `/api/video?path=${vp}`;
+
+  if (startSec > 0) {
+    player.addEventListener("loadedmetadata", () => {
+      player.currentTime = Math.max(0, startSec - 1);
+    }, { once: true });
+  }
+
+  // ── Download links ────────────────────────────────────────────────────────
+  document.getElementById("btn-dl-srt").href    = `/api/subtitle?video_path=${vp}`;
+  document.getElementById("btn-dl-txt").href    = `/api/transcript/txt?video_path=${vp}`;
+  document.getElementById("btn-dl-scenes").href = `/api/scenes/txt?video_path=${vp}`;
+  document.getElementById("btn-dl-video").href  = `/api/video?path=${vp}&download=1`;
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  document.querySelector(".detail-tab-bar").addEventListener("click", e => {
+    const tab = e.target.closest(".detail-tab");
+    if (!tab) return;
+    document.querySelectorAll(".detail-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const pane = tab.dataset.pane;
+    document.getElementById("pane-subtitles").classList.toggle("hidden", pane !== "subtitles");
+    document.getElementById("pane-scenes").classList.toggle("hidden", pane !== "scenes");
+  });
+
+  // ── Subtitle pane ─────────────────────────────────────────────────────────
+  function loadSubtitles() {
+    const pane = document.getElementById("pane-subtitles");
+    fetch(`/api/transcript?video_path=${vp}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.segments || data.segments.length === 0) {
+          pane.innerHTML = `<div class="state-msg"><p>Sem legenda disponível</p></div>`;
+          return;
+        }
+        // Update video name from first segment's video_path-derived info
+        const rows = data.segments.map(seg => {
+          const active = startSec > 0 && Math.abs(seg.start - startSec) < 0.5;
+          return `<div class="sub-row${active ? " active" : ""}" data-start="${seg.start}">
+            <span class="sub-ts">${escHtml(seg.timestamp)}</span>
+            <span class="sub-text">${escHtml(seg.text)}</span>
+          </div>`;
+        }).join("");
+        pane.innerHTML = rows;
+        const activeRow = pane.querySelector(".sub-row.active");
+        if (activeRow) setTimeout(() => activeRow.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+      })
+      .catch(() => {
+        pane.innerHTML = `<div class="state-msg"><p>Erro ao carregar legenda</p></div>`;
+      });
+  }
+
+  // Click on subtitle row → seek player
+  document.getElementById("pane-subtitles").addEventListener("click", e => {
+    const row = e.target.closest(".sub-row");
+    if (!row) return;
+    const t = parseFloat(row.dataset.start) || 0;
+    player.currentTime = t;
+    player.play().catch(() => {});
+    document.querySelectorAll("#pane-subtitles .sub-row").forEach(r => r.classList.remove("active"));
+    row.classList.add("active");
+  });
+
+  // ── Scenes pane ───────────────────────────────────────────────────────────
+  let scenesLoaded = false;
+
+  function loadScenes() {
+    if (scenesLoaded) return;
+    scenesLoaded = true;
+    const pane = document.getElementById("pane-scenes");
+    fetch(`/api/scenes?video_path=${vp}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.segments || data.segments.length === 0) {
+          pane.innerHTML = `<div class="state-msg"><p>Sem descrições de cena disponíveis</p></div>`;
+          return;
+        }
+        const rows = data.segments.map(seg => `
+          <div class="scene-row" data-start="${seg.start}">
+            <span class="scene-ts">${escHtml(seg.timestamp)}</span>
+            <span class="scene-desc">${escHtml(seg.description)}</span>
+          </div>`).join("");
+        pane.innerHTML = rows;
+      })
+      .catch(() => {
+        pane.innerHTML = `<div class="state-msg"><p>Erro ao carregar cenas</p></div>`;
+      });
+  }
+
+  // Lazy-load scenes when that tab is clicked
+  document.querySelector(".detail-tab-bar").addEventListener("click", e => {
+    const tab = e.target.closest(".detail-tab");
+    if (tab && tab.dataset.pane === "scenes") loadScenes();
+  });
+
+  // ── Video metadata → fill header info ─────────────────────────────────────
+  fetch(`/api/videos`).then(r => r.json()).then(list => {
+    const v = list.find(x => x.video_path === videoPath);
+    if (!v) return;
+    document.getElementById("detail-name").textContent   = v.video_name || videoPath;
+    document.getElementById("detail-folder").textContent = v.folder && v.folder !== "." ? v.folder : "(raiz)";
+    document.title = v.video_name || "Vídeo";
+  }).catch(() => {
+    // Fallback: derive name from path
+    const parts = videoPath.split("/");
+    document.getElementById("detail-name").textContent = parts[parts.length - 1] || videoPath;
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  if (videoPath) loadSubtitles();
+</script>
+</body>
+</html>
