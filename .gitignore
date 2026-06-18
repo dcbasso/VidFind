@@ -1,6 +1,9 @@
 # Segredos e configuração local
 .env
 
+# Configuração de servidor (local only)
+servidor/
+
 # Dados gerados (volumes Docker)
 meili_data/
 srt_data/
