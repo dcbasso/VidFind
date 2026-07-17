@@ -1,5 +1,7 @@
 {
   "logo_url": "/assets/logo.png",
   "title": "VidFind",
-  "theme": "dark"
+  "theme": "nocturne",
+  "lang": "pt",
+  "resolutions": ["4k", "1080p", "720p"]
 }

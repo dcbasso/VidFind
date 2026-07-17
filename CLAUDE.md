@@ -49,6 +49,7 @@ ad-search/
 - `GET /api/search/scenes?q=&folder=&limit=` — busca no índice de cenas
 - `GET /api/folders` — lista pastas únicas para o filtro de pasta
 - `GET /api/stats` — estatísticas do índice Meilisearch
+- `GET /api/system` — dados agregados para o diálogo "Dados do sistema" (pastas, vídeos, legendas, cenas, última indexação, espaço em disco)
 - `GET /api/videos` — lista vídeos únicos indexados com contagem de segmentos
 - `GET /api/transcript?video_path=` — todos os segmentos de um vídeo
 - `GET /api/scenes?video_path=` — todas as cenas de um vídeo
@@ -57,17 +58,20 @@ ad-search/
 - `GET /api/scenes/txt?video_path=` — download das descrições de cenas em TXT
 - `GET /api/video?path=` — streaming do vídeo com suporte a byte-range
 - `GET /api/video?path=&download=1` — download do vídeo
+- `GET /api/resolutions?video_path=` — variantes de resolução (4k/1080p/720p) que existem em disco para aquele vídeo (pasta + sufixo espelhados); alimenta o menu de download por resolução
 
 ## Frontend
 
 Ver **[FRONTEND.md](FRONTEND.md)** para o SDD completo (temas, componentes, APIs, regras de extensão).
 
 Resumo operacional:
-- Configuração injetável em `web/config.json` (logo, título, tema padrão) — não alterar código para personalizar
-- Três temas: `dark` / `mid` / `light` — controlados por `data-theme` em `<html>` via CSS variables
-- Sidebar redimensionável por drag; largura persistida em `localStorage`
+- Vanilla JS/CSS, sem framework/build (recriar nesse estilo — não introduzir React/Vue/build tooling)
+- Configuração injetável em `web/config.json` (logo, título, tema e idioma padrão) — não alterar código para personalizar
+- Quatro temas: `nocturne` (padrão) / `ocean` / `palenight` / `onedark` — `data-theme` em `<html>`, 5 roles por tema + rampas por fórmula (`color-mix`)
+- i18n **só da interface** (não do conteúdo): `web/static/i18n.js` (pt/en), seletor de idioma na UI, persistido em `localStorage["vf-lang"]`
+- Navegação: sidebar vertical (Legendas/Cenas/Vídeos) + barra de filtros no topo; sidebar redimensionável por drag (largura em `localStorage`)
 - Rotas frontend: `/` (busca/cenas/vídeos) e `/video?path=&t=` (detalhe)
-- Nunca hardcodar cores — usar sempre as CSS variables do sistema de temas
+- Nunca hardcodar cores (usar CSS variables) nem strings de UI (usar `t()`/`data-i18n`)
 
 ## Templates
 

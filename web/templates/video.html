@@ -1,53 +1,56 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR" data-theme="nocturne">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VidFind · Vídeo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="/static/i18n.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── Themes ───────────────────────────────────────────────────────────── */
-    :root, [data-theme="dark"] {
-      --bg:           #000000;
-      --surface:      #0d0d0d;
-      --surface2:     #141414;
-      --border:       #222222;
-      --border2:      #2e2e2e;
-      --accent:       #ffffff;
-      --accent-dim:   #666666;
-      --text:         #f0f0f0;
-      --muted:        #555555;
-      --tab-bar-bg:   #080808;
-      --tab-active-bg:#000000;
+    /* ── Theme tokens: 5 roles per theme; ramps derived by formula ─────────── */
+    :root, [data-theme="nocturne"] {
+      --color-bg: #161826; --color-surface: #232532; --color-text: #e9e9ed;
+      --color-accent: #9184d9; --color-accent-2: #a7a1db;
     }
-    [data-theme="mid"] {
-      --bg:           #141414;
-      --surface:      #1e1e1e;
-      --surface2:     #272727;
-      --border:       #333333;
-      --border2:      #3d3d3d;
-      --accent:       #e8e8e8;
-      --accent-dim:   #777777;
-      --text:         #e0e0e0;
-      --muted:        #666666;
-      --tab-bar-bg:   #0e0e0e;
-      --tab-active-bg:#141414;
+    [data-theme="ocean"] {
+      --color-bg: #0b0f17; --color-surface: #121826; --color-text: #d4dced;
+      --color-accent: #4fd8c4; --color-accent-2: #5ec2e0;
     }
-    [data-theme="light"] {
-      --bg:           #f4f4f4;
-      --surface:      #ffffff;
-      --surface2:     #eeeeee;
-      --border:       #dddddd;
-      --border2:      #cccccc;
-      --accent:       #111111;
-      --accent-dim:   #555555;
-      --text:         #111111;
-      --muted:        #888888;
-      --tab-bar-bg:   #e4e4e4;
-      --tab-active-bg:#f4f4f4;
+    [data-theme="palenight"] {
+      --color-bg: #1b1e2b; --color-surface: #242840; --color-text: #eae9f5;
+      --color-accent: #c895ea; --color-accent-2: #f07bb0;
+    }
+    [data-theme="onedark"] {
+      --color-bg: #21252b; --color-surface: #282c34; --color-text: #c7ccd6;
+      --color-accent: #61afef; --color-accent-2: #e5c07b;
+    }
+    :root {
+      --color-accent-100: color-mix(in srgb, var(--color-accent) 16%, white);
+      --color-accent-800: color-mix(in srgb, var(--color-accent) 40%, black);
+      --color-neutral-700: color-mix(in srgb, var(--color-text) 28%, var(--color-bg));
+      --color-neutral-500: color-mix(in srgb, var(--color-text) 58%, var(--color-bg));
+      --color-neutral-400: color-mix(in srgb, var(--color-text) 72%, var(--color-bg));
+      --color-divider: color-mix(in srgb, var(--color-text) 16%, transparent);
+
+      --font-heading: 'Inter', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+
+      /* Compatibility aliases so existing component CSS keeps working */
+      --bg: var(--color-bg);
+      --surface: var(--color-surface);
+      --surface2: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
+      --border: var(--color-divider);
+      --border2: var(--color-neutral-700);
+      --accent: var(--color-accent);
+      --accent-dim: var(--color-neutral-400);
+      --text: var(--color-text);
+      --muted: var(--color-neutral-500);
+      --tab-bar-bg: color-mix(in srgb, var(--color-text) 3%, var(--color-bg));
+      --tab-active-bg: var(--color-bg);
     }
 
     /* ── Base ─────────────────────────────────────────────────────────────── */
@@ -55,7 +58,7 @@
       height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family: var(--font-body);
       font-size: 16px;
       line-height: 1.6;
       overflow: hidden;
@@ -82,12 +85,12 @@
     }
     .logo-wrap { display: flex; align-items: center; }
     .logo-wrap img { height: 32px; width: auto; }
-    .logo-fallback { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.12em; color: var(--text); }
-    .header-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
+    .logo-fallback { font-family: var(--font-heading); font-size: 1.4rem; letter-spacing: 0.12em; color: var(--text); }
+    .header-title { font-family: var(--font-heading); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); }
     .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
     .theme-btn {
       background: none; border: 1px solid var(--border); border-radius: 2px;
-      color: var(--muted); font-family: 'DM Mono', monospace;
+      color: var(--muted); font-family: var(--font-heading);
       font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
       padding: 5px 12px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
     }
@@ -117,7 +120,7 @@
     }
     .video-info-text { flex: 1; min-width: 0; }
     .video-folder {
-      font-family: 'DM Mono', monospace;
+      font-family: var(--font-heading);
       font-size: 0.62rem;
       color: var(--muted);
       text-transform: uppercase;
@@ -151,7 +154,7 @@
       border-bottom: none;
       border-radius: 4px 4px 0 0;
       color: var(--muted);
-      font-family: 'DM Mono', monospace;
+      font-family: var(--font-heading);
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.10em;
@@ -191,7 +194,7 @@
     .sub-row:hover { background: var(--surface2); }
     .sub-row.active { background: var(--surface2); border-left: 2px solid var(--accent); padding-left: 30px; }
     .sub-ts {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.15rem;
       color: var(--muted);
       letter-spacing: 0.06em;
@@ -213,7 +216,7 @@
     }
     .scene-row:hover { background: var(--surface2); }
     .scene-ts {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: var(--font-heading);
       font-size: 1.15rem;
       color: var(--muted);
       letter-spacing: 0.06em;
@@ -227,7 +230,7 @@
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; min-height: 160px; gap: 12px; color: var(--muted);
     }
-    .state-msg p { font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+    .state-msg p { font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; font-family: var(--font-heading); }
     .loading { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 60px; }
     .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); animation: pulse 1.2s ease-in-out infinite; }
     .dot:nth-child(2) { animation-delay: 0.2s; }
@@ -238,7 +241,7 @@
     .action-btn {
       background: none; border: 1px solid var(--border2); color: var(--accent-dim);
       border-radius: 2px; padding: 5px 12px; font-size: 0.72rem;
-      font-family: 'DM Mono', monospace; cursor: pointer; letter-spacing: 0.06em;
+      font-family: var(--font-heading); cursor: pointer; letter-spacing: 0.06em;
       text-transform: uppercase; transition: border-color 0.15s, color 0.15s, background 0.15s;
       white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
     }
@@ -255,8 +258,8 @@
       background: var(--bg);
       flex-shrink: 0;
     }
-    .footer-left { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
-    .footer-right { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .footer-left { font-family: var(--font-heading); font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .footer-right { font-family: var(--font-heading); font-size: 0.62rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
     .footer-right a { color: var(--muted); text-decoration: none; transition: color 0.15s; text-transform: uppercase; letter-spacing: 0.08em; }
     .footer-right a:hover { color: var(--text); }
     .sep { color: var(--border2); }
@@ -282,8 +285,9 @@
     </div>
     <span class="header-title hidden" id="header-title"></span>
     <div class="header-right">
-      <a href="/" id="btn-back" class="action-btn">← Voltar</a>
-      <button class="theme-btn" id="theme-toggle">◐ Tema</button>
+      <a href="/" id="btn-back" class="action-btn">← <span data-i18n="video.back">Voltar</span></a>
+      <button class="theme-btn" id="lang-toggle">🌐 <span id="lang-code">PT</span></button>
+      <button class="theme-btn" id="theme-toggle">◐ <span data-i18n="video.theme">Tema</span></button>
     </div>
   </header>
 
@@ -299,16 +303,16 @@
         <div class="video-name" id="detail-name">Carregando…</div>
       </div>
       <div class="video-info-actions">
-        <a id="btn-dl-srt"    class="action-btn" href="#" download>↓ SRT</a>
-        <a id="btn-dl-txt"    class="action-btn" href="#" download>↓ TXT</a>
-        <a id="btn-dl-scenes" class="action-btn" href="#" download>↓ Cenas</a>
-        <a id="btn-dl-video"  class="action-btn" href="#" download>↓ Vídeo</a>
+        <a id="btn-dl-srt"    class="action-btn" href="#" download>↓ <span data-i18n="video.dlSrt">SRT</span></a>
+        <a id="btn-dl-txt"    class="action-btn" href="#" download>↓ <span data-i18n="video.dlTxt">TXT</span></a>
+        <a id="btn-dl-scenes" class="action-btn" href="#" download>↓ <span data-i18n="video.dlScenes">Cenas</span></a>
+        <a id="btn-dl-video"  class="action-btn" href="#" download>↓ <span data-i18n="video.dlVideo">Vídeo</span></a>
       </div>
     </div>
 
     <nav class="detail-tab-bar">
-      <button class="detail-tab active" data-pane="subtitles">≡ Legenda</button>
-      <button class="detail-tab" data-pane="scenes">⬡ Cenas</button>
+      <button class="detail-tab active" data-pane="subtitles">≡ <span data-i18n="video.tabSubtitle">Legenda</span></button>
+      <button class="detail-tab" data-pane="scenes">⬡ <span data-i18n="video.tabScenes">Cenas</span></button>
     </nav>
 
     <div class="detail-pane" id="pane-subtitles">
@@ -322,7 +326,7 @@
   </div>
 
   <footer>
-    <div class="footer-left" id="footer-left"><a href="https://github.com/dcbasso/VidFind" target="_blank" rel="noopener">VidFind</a> · Detalhe do Vídeo</div>
+    <div class="footer-left" id="footer-left"><a href="https://github.com/dcbasso/VidFind" target="_blank" rel="noopener">VidFind</a> · <span data-i18n="video.footer">Detalhe do Vídeo</span></div>
     <div class="footer-right">
       <span>Powered by</span>
       <a href="https://dantebasso.com.br" target="_blank" rel="noopener">Dante Basso</a>
@@ -345,20 +349,35 @@
   }
 
   // ── Theme ─────────────────────────────────────────────────────────────────
-  const THEMES = ["dark", "mid", "light"];
+  const THEMES = ["nocturne", "ocean", "palenight", "onedark"];
   let themeIndex = 0;
 
   function applyTheme(t) {
+    if (!THEMES.includes(t)) t = "nocturne";
     document.documentElement.setAttribute("data-theme", t);
-    localStorage.setItem("theme", t);
+    localStorage.setItem("vf-theme", t);
     themeIndex = Math.max(0, THEMES.indexOf(t));
   }
 
-  const savedTheme = localStorage.getItem("theme");
+  const savedTheme = localStorage.getItem("vf-theme");
   if (savedTheme && THEMES.includes(savedTheme)) applyTheme(savedTheme);
 
   document.getElementById("theme-toggle").addEventListener("click", () => {
     applyTheme(THEMES[(themeIndex + 1) % THEMES.length]);
+  });
+
+  // ── i18n ──────────────────────────────────────────────────────────────────
+  VFI18N.init();
+  document.getElementById("lang-code").textContent = VFI18N.lang.toUpperCase();
+  document.getElementById("detail-name").textContent = t("video.loading");
+  VFI18N.applyStatic();
+  document.getElementById("lang-toggle").addEventListener("click", () => {
+    const ids = VFI18N.langs.map(l => l.id);
+    VFI18N.setLang(ids[(ids.indexOf(VFI18N.lang) + 1) % ids.length]);
+  });
+  VFI18N.onChange(() => {
+    document.getElementById("lang-code").textContent = VFI18N.lang.toUpperCase();
+    VFI18N.applyStatic();
   });
 
   // ── Config ────────────────────────────────────────────────────────────────
@@ -377,10 +396,8 @@
     } else if (cfg.title) {
       document.getElementById("header-logo-fallback").textContent = cfg.title;
     }
-    if (cfg.title) {
-      document.getElementById("footer-left").textContent = cfg.title + " · Detalhe";
-    }
     if (!savedTheme && cfg.theme && THEMES.includes(cfg.theme)) applyTheme(cfg.theme);
+    if (!VFI18N.hasSaved() && cfg.lang) VFI18N.setLang(cfg.lang);
   }).catch(() => {});
 
   // ── Back button ───────────────────────────────────────────────────────────
@@ -399,7 +416,7 @@
   const startSec  = parseFloat(params.get("t") || "0") || 0;
 
   if (!videoPath) {
-    document.getElementById("detail-name").textContent = "Parâmetro path ausente";
+    document.getElementById("detail-name").textContent = t("video.missingPath");
   }
 
   // ── Player setup ──────────────────────────────────────────────────────────
@@ -438,7 +455,7 @@
       .then(r => r.json())
       .then(data => {
         if (!data.segments || data.segments.length === 0) {
-          pane.innerHTML = `<div class="state-msg"><p>Sem legenda disponível</p></div>`;
+          pane.innerHTML = `<div class="state-msg"><p>${t("video.noSubtitle")}</p></div>`;
           return;
         }
         // Update video name from first segment's video_path-derived info
@@ -454,7 +471,7 @@
         if (activeRow) setTimeout(() => activeRow.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       })
       .catch(() => {
-        pane.innerHTML = `<div class="state-msg"><p>Erro ao carregar legenda</p></div>`;
+        pane.innerHTML = `<div class="state-msg"><p>${t("video.errSubtitle")}</p></div>`;
       });
   }
 
@@ -480,7 +497,7 @@
       .then(r => r.json())
       .then(data => {
         if (!data.segments || data.segments.length === 0) {
-          pane.innerHTML = `<div class="state-msg"><p>Sem descrições de cena disponíveis</p></div>`;
+          pane.innerHTML = `<div class="state-msg"><p>${t("video.noScenes")}</p></div>`;
           return;
         }
         const rows = data.segments.map(seg => `
@@ -491,7 +508,7 @@
         pane.innerHTML = rows;
       })
       .catch(() => {
-        pane.innerHTML = `<div class="state-msg"><p>Erro ao carregar cenas</p></div>`;
+        pane.innerHTML = `<div class="state-msg"><p>${t("video.errScenes")}</p></div>`;
       });
   }
 
