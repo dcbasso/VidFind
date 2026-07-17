@@ -203,6 +203,77 @@ def stats():
     })
 
 
+@app.route("/api/system")
+def system_info():
+    """System-wide index stats for the "Dados do sistema" dialog.
+
+    Every field is best-effort: any part that fails resolves to null so the
+    dialog can still render what is available without breaking the page.
+    """
+    captions = scenes = None
+    last_indexed = None
+    try:
+        r = requests.get(f"{MEILI_URL}/indexes/{INDEX_NAME}/stats", headers=HEADERS, timeout=5)
+        if r.ok:
+            captions = r.json().get("numberOfDocuments")
+    except Exception:
+        pass
+    try:
+        r = requests.get(f"{MEILI_URL}/indexes/{SCENES_INDEX}/stats", headers=HEADERS, timeout=5)
+        if r.ok:
+            scenes = r.json().get("numberOfDocuments")
+    except Exception:
+        pass
+
+    # Unique videos + folders, derived from the videos index in a single query.
+    videos = folders = None
+    try:
+        r = requests.post(
+            f"{MEILI_URL}/indexes/{INDEX_NAME}/search",
+            headers=HEADERS,
+            json={"q": "", "limit": 10000, "attributesToRetrieve": ["video_path", "folder"]},
+            timeout=30,
+        )
+        hits = r.json().get("hits", [])
+        videos = len({h.get("video_path") for h in hits if h.get("video_path")})
+        folders = len({h.get("folder") for h in hits if h.get("folder")})
+    except Exception:
+        pass
+
+    # Last indexed: most recent updatedAt reported by Meilisearch.
+    try:
+        r = requests.get(f"{MEILI_URL}/indexes/{INDEX_NAME}", headers=HEADERS, timeout=5)
+        if r.ok:
+            last_indexed = r.json().get("updatedAt")
+    except Exception:
+        pass
+
+    # Disk usage: total size of the video files under VIDEOS_PATH.
+    disk_bytes = None
+    try:
+        base = Path(VIDEOS_PATH)
+        if base.exists():
+            total = 0
+            for p in base.rglob("*"):
+                if p.is_file() and p.suffix.lower() in (".mp4", ".mov"):
+                    try:
+                        total += p.stat().st_size
+                    except Exception:
+                        pass
+            disk_bytes = total
+    except Exception:
+        pass
+
+    return jsonify({
+        "folders": folders,
+        "videos": videos,
+        "captions": captions,
+        "scenes": scenes,
+        "last_indexed": last_indexed,
+        "disk_bytes": disk_bytes,
+    })
+
+
 @app.route("/api/search/scenes")
 def search_scenes():
     q      = request.args.get("q", "").strip()
@@ -364,6 +435,73 @@ def video():
         return send_file(str(video_file), as_attachment=True, mimetype=mime)
 
     return _stream_file(video_file, mime)
+
+
+def _resolution_tokens():
+    """Ordered list of resolution folder/suffix tokens (config-driven)."""
+    config_path = Path(__file__).parent / "config.json"
+    try:
+        with open(config_path) as f:
+            toks = json.load(f).get("resolutions")
+        if isinstance(toks, list) and toks:
+            return [str(t) for t in toks]
+    except Exception:
+        pass
+    return ["4k", "1080p", "720p"]
+
+
+def _resolution_label(token: str) -> str:
+    """Best-effort display label from a token: 4k -> 4K, 1080p -> 1080p."""
+    return token.upper() if token.lower().endswith("k") else token
+
+
+def _resolution_variants(video_path: str):
+    """Given an indexed video path, return the resolution variants that
+    actually exist on disk. Convention (pasta + sufixo espelhado):
+    the resolution is BOTH the first path segment under VIDEOS_PATH and a
+    `_<token>` suffix in the filename. Returns [] on any failure so the
+    caller can fall back to the single original download."""
+    try:
+        base = Path(VIDEOS_PATH).resolve()
+        orig = _safe_resolve(VIDEOS_PATH, video_path)
+        rel = orig.relative_to(base)
+    except Exception:
+        return []
+    parts = rel.parts
+    if len(parts) < 2:
+        return []  # no resolution folder to swap
+    tokens = _resolution_tokens()
+    cur = parts[0]
+    if cur not in tokens:
+        return []  # first segment isn't a known resolution → don't guess
+    stem, suffix = orig.stem, orig.suffix
+    cur_sfx = f"_{cur}"
+    variants = []
+    for tok in tokens:
+        name = (stem[: -len(cur_sfx)] + f"_{tok}" + suffix) if stem.endswith(cur_sfx) else orig.name
+        cand = base.joinpath(tok, *parts[1:-1], name)
+        try:
+            if cand.is_file():
+                variants.append({
+                    "token": tok,
+                    "label": _resolution_label(tok),
+                    "path": str(cand),
+                    "size": cand.stat().st_size,
+                })
+        except Exception:
+            continue
+    return variants
+
+
+@app.route("/api/resolutions")
+def resolutions():
+    """List downloadable resolution variants for an indexed video.
+    Only variants present on disk are returned; empty list means 'just use
+    the original path' (frontend keeps a single plain download button)."""
+    video_path = request.args.get("video_path", "").strip()
+    if not video_path:
+        abort(400)
+    return jsonify({"variants": _resolution_variants(video_path)})
 
 
 @app.route("/api/scenes")
