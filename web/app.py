@@ -3,6 +3,7 @@
 
 import os
 import json
+import subprocess
 from pathlib import Path
 import requests
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, Response, abort
@@ -455,12 +456,28 @@ def _resolution_label(token: str) -> str:
     return token.upper() if token.lower().endswith("k") else token
 
 
+def _find_raw_variant(folder: Path, clip_id: str):
+    """RAW files don't share the `_<token>` suffix convention — they keep
+    only the camera clip id (e.g. C0219.MP4 for .../C0219_169_1080p.mp4).
+    Match by stem, case-insensitively, since camera output is often .MP4."""
+    try:
+        if not folder.is_dir():
+            return None
+        for f in folder.iterdir():
+            if f.is_file() and f.stem.lower() == clip_id.lower():
+                return f
+    except Exception:
+        pass
+    return None
+
+
 def _resolution_variants(video_path: str):
     """Given an indexed video path, return the resolution variants that
     actually exist on disk. Convention (pasta + sufixo espelhado):
     the resolution is BOTH the first path segment under VIDEOS_PATH and a
-    `_<token>` suffix in the filename. Returns [] on any failure so the
-    caller can fall back to the single original download."""
+    `_<token>` suffix in the filename — except RAW, matched by clip id
+    (see _find_raw_variant). Returns [] on any failure so the caller can
+    fall back to the single original download."""
     try:
         base = Path(VIDEOS_PATH).resolve()
         orig = _safe_resolve(VIDEOS_PATH, video_path)
@@ -476,18 +493,26 @@ def _resolution_variants(video_path: str):
         return []  # first segment isn't a known resolution → don't guess
     stem, suffix = orig.stem, orig.suffix
     cur_sfx = f"_{cur}"
+    base_stem = stem[: -len(cur_sfx)] if stem.endswith(cur_sfx) else stem
+    clip_id = base_stem.split("_")[0]
     variants = []
     for tok in tokens:
-        name = (stem[: -len(cur_sfx)] + f"_{tok}" + suffix) if stem.endswith(cur_sfx) else orig.name
-        cand = base.joinpath(tok, *parts[1:-1], name)
+        folder = base.joinpath(tok, *parts[1:-1])
+        if tok == "RAW":
+            cand = _find_raw_variant(folder, clip_id)
+        else:
+            name = f"{base_stem}_{tok}{suffix}" if stem.endswith(cur_sfx) else orig.name
+            candidate = folder / name
+            cand = candidate if candidate.is_file() else None
+        if cand is None:
+            continue
         try:
-            if cand.is_file():
-                variants.append({
-                    "token": tok,
-                    "label": _resolution_label(tok),
-                    "path": str(cand),
-                    "size": cand.stat().st_size,
-                })
+            variants.append({
+                "token": tok,
+                "label": _resolution_label(tok),
+                "path": str(cand),
+                "size": cand.stat().st_size,
+            })
         except Exception:
             continue
     return variants
@@ -560,6 +585,74 @@ def scenes_txt():
         mimetype="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{video_name}_cenas.txt"'},
     )
+
+
+@app.route("/api/metadata")
+def metadata():
+    """Technical metadata (codec, resolution, duration, etc) via ffprobe."""
+    video_path = request.args.get("video_path", "").strip()
+    if not video_path:
+        abort(400)
+    try:
+        video_file = _safe_resolve(VIDEOS_PATH, video_path)
+    except Exception:
+        abort(403)
+    if not video_file.exists():
+        abort(404)
+
+    try:
+        proc = subprocess.run(
+            [
+                "ffprobe", "-v", "quiet", "-print_format", "json",
+                "-show_format", "-show_streams", str(video_file),
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+        probe = json.loads(proc.stdout)
+    except Exception:
+        return jsonify({"error": "ffprobe_failed"}), 500
+
+    fmt = probe.get("format", {})
+    streams = probe.get("streams", [])
+    video_stream = next((s for s in streams if s.get("codec_type") == "video"), None)
+    audio_stream = next((s for s in streams if s.get("codec_type") == "audio"), None)
+
+    def _fps(stream):
+        raw = stream.get("avg_frame_rate") or stream.get("r_frame_rate")
+        if not raw or raw == "0/0":
+            return None
+        num, _, den = raw.partition("/")
+        try:
+            return round(float(num) / float(den), 2) if den and float(den) else float(num)
+        except (ValueError, ZeroDivisionError):
+            return None
+
+    result = {
+        "file_name":  video_file.name,
+        "size":       video_file.stat().st_size,
+        "duration":   float(fmt.get("duration")) if fmt.get("duration") else None,
+        "bit_rate":   int(fmt.get("bit_rate")) if fmt.get("bit_rate") else None,
+        "format_name": fmt.get("format_long_name"),
+        "video": None,
+        "audio": None,
+    }
+    if video_stream:
+        result["video"] = {
+            "codec":    video_stream.get("codec_long_name") or video_stream.get("codec_name"),
+            "width":    video_stream.get("width"),
+            "height":   video_stream.get("height"),
+            "fps":      _fps(video_stream),
+            "bit_rate": int(video_stream["bit_rate"]) if video_stream.get("bit_rate") else None,
+            "pix_fmt":  video_stream.get("pix_fmt"),
+        }
+    if audio_stream:
+        result["audio"] = {
+            "codec":       audio_stream.get("codec_long_name") or audio_stream.get("codec_name"),
+            "sample_rate": audio_stream.get("sample_rate"),
+            "channels":    audio_stream.get("channels"),
+            "bit_rate":    int(audio_stream["bit_rate"]) if audio_stream.get("bit_rate") else None,
+        }
+    return jsonify(result)
 
 
 if __name__ == "__main__":

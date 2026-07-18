@@ -640,7 +640,25 @@
     }
     if (!savedTheme && cfg.theme && THEMES.includes(cfg.theme)) applyTheme(cfg.theme);
     if (!VFI18N.hasSaved() && cfg.lang) VFI18N.setLang(cfg.lang);
+    if (Array.isArray(cfg.resolutions) && cfg.resolutions.length) resolutionTokens = cfg.resolutions;
+    if (Array.isArray(cfg.hidden_folder_segments)) hiddenFolderSegments = cfg.hidden_folder_segments;
   }).catch(() => {});
+
+  // ── Folder display ──────────────────────────────────────────────────────────
+  // Resolution folders (4k/1080p/720p/RAW) mirror the same path under each
+  // token, and some segments (config-driven) are just repetitive noise —
+  // stripping both keeps the folder filter/labels readable.
+  let resolutionTokens = ["4k", "1080p", "720p", "RAW"];
+  let hiddenFolderSegments = [];
+  function dispFolder(f) {
+    if (!f || f === ".") return f;
+    let parts = f.split("/");
+    if (parts.length > 1 && resolutionTokens.some((t) => t.toLowerCase() === parts[0].toLowerCase())) {
+      parts = parts.slice(1);
+    }
+    parts = parts.filter((p) => !hiddenFolderSegments.some((h) => h.toLowerCase() === p.toLowerCase()));
+    return parts.join("/") || ".";
+  }
 
   // ── State ───────────────────────────────────────────────────────────────────
   let activeTab = "legendas";
@@ -700,7 +718,7 @@
     const opts = activeTab === "videos" ? videoFolders() : foldersCaptions;
     folderSelect.innerHTML =
       `<option value="">${t("filter.allFolders")}</option>` +
-      opts.map((f) => `<option value="${escHtml(f)}">${f === "." ? t("folder.root") : escHtml(f)}</option>`).join("");
+      opts.map((f) => `<option value="${escHtml(f)}">${f === "." ? t("folder.root") : escHtml(dispFolder(f))}</option>`).join("");
     folderSelect.value = folderByTab[activeTab];
   }
   folderSelect.addEventListener("change", () => {
@@ -806,7 +824,7 @@
     }));
     const meta = `<div class="result-count"><strong>${hits.length}</strong> ${t(hits.length === 1 ? "results.one" : "results.many")}</div>`;
     const cards = lastResults.map((r, i) => {
-      const folderLbl = r.folder && r.folder !== "." ? escHtml(r.folder) : "(raiz)";
+      const folderLbl = r.folder && r.folder !== "." ? escHtml(dispFolder(r.folder)) : "(raiz)";
       const vp = encodeURIComponent(r.video_path);
       return `
         <div class="card rcard">
@@ -819,6 +837,7 @@
             <div class="rtext">${r.textHtml || ""}</div>
             <div class="ractions">
               <button class="btn btn-primary" data-action="play" data-src="r" data-idx="${i}">${icon("play")}${t("btn.play")}</button>
+              <a class="btn btn-secondary" href="/video?path=${vp}&t=${Math.floor(r.start)}">${icon("external")}${t("btn.goto")}</a>
               ${!isScenes ? `<a class="btn btn-secondary" href="/api/subtitle?video_path=${vp}" download>${icon("file-text")}SRT</a>` : ""}
               ${!isScenes ? `<a class="btn btn-secondary" href="/api/transcript/txt?video_path=${vp}" download>${icon("file-text")}TXT</a>` : ""}
               <button class="btn btn-secondary" data-action="download" data-src="r" data-idx="${i}">${icon("download")}${t("btn.video")}</button>
@@ -865,12 +884,12 @@
     let html = `<div class="result-count"><strong>${filtered.length}</strong> ${t(filtered.length === 1 ? "videos.one" : "videos.many")}</div>`;
     let idx = 0;
     Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).forEach(([g, vids]) => {
-      if (showHeaders) html += `<div class="folder-header">${escHtml(g)}</div>`;
+      if (showHeaders) html += `<div class="folder-header">${escHtml(dispFolder(g))}</div>`;
       html += `<div class="video-grid">`;
       vids.forEach((v) => {
         const i = allVideos.indexOf(v);
         const vp = encodeURIComponent(v.video_path);
-        const g2 = v.folder && v.folder !== "." ? escHtml(v.folder) : "(raiz)";
+        const g2 = v.folder && v.folder !== "." ? escHtml(dispFolder(v.folder)) : "(raiz)";
         html += `
           <div class="card vcard" data-video-idx="${i}">
             <div class="vpath">${icon("folder")}${g2}</div>
