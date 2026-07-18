@@ -3,5 +3,6 @@
   "title": "VidFind",
   "theme": "nocturne",
   "lang": "pt",
-  "resolutions": ["4k", "1080p", "720p"]
+  "resolutions": ["4k", "1080p", "720p", "RAW"],
+  "hidden_folder_segments": ["STUDIO HEXATA"]
 }

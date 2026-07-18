@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "Bash(docker volume *)",
+      "Bash(git rm *)",
+      "Bash(git check-ignore *)",
+      "Bash(curl -s http://localhost:8080/*)",
+      "Bash(curl -s -o /dev/null -w * http://localhost:8080/*)",
+      "Bash(curl -s --retry *)",
+      "Bash(node *.mjs)",
+      "Bash(node -e \"require\\('playwright'\\); console.log\\('playwright OK'\\)\")",
+      "Bash(npm install *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('app.py'\\).read\\(\\)\\); print\\('app.py OK'\\)\")",
+      "Bash(python3 -c \"import json; json.load\\(open\\('config.json'\\)\\); print\\('config.json OK'\\)\")",
+      "Bash(python3 -c \"import json; json.load\\(open\\('.claude/settings.json'\\)\\); print\\('settings.json OK ✓'\\)\")",
+      "Bash(python3 -c \"import flask, requests; print\\('flask', flask.__version__, '| requests ok'\\)\")",
+      "Read(//tmp/**)",
+      "Edit(/.claude/skills/run-local/**)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('.claude/settings.local.json'\\)\\); print\\('settings.local.json OK ✓'\\)\")",
+      "Bash(curl -s --retry 15 --retry-delay 1 --retry-connrefused --retry-all-errors -o /dev/null -w \"web HTTP %{http_code}\\\\n\" http://localhost:8080/)",
+      "Bash(curl -s 'http://localhost:8080/api/videos')",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s 'http://localhost:8080/api/resolutions?video_path=%2Fvideos%2F1080p%2FSTUDIO%20HEXATA%2FSINDUSCON%2FC0219_169_1080p.mp4')",
+      "Bash(docker exec *)",
+      "Bash(zip -r /tmp/claude-1000/-home-dcbasso-worksapce-Hexata-VidFind/0eab2b7c-24b9-46c6-8ff5-f8ea0b1d623b/scratchpad/vidfind.zip web/app.py web/config.json web/templates/index.html web/templates/video.html)",
+      "Bash(curl -s --retry 10 --retry-delay 1 --retry-connrefused -o /dev/null -w \"web HTTP %{http_code}\\\\n\" http://localhost:8080/)",
+      "Bash(curl -s http://localhost:8080/api/config)",
+      "Bash(curl -s -o /dev/null -w \"web HTTP %{http_code}\\\\n\" http://localhost:8080/)"
+    ]
+  }
+}

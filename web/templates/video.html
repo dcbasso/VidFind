@@ -380,8 +380,23 @@
     VFI18N.applyStatic();
   });
 
+  // ── Folder display ────────────────────────────────────────────────────────
+  let resolutionTokens = ["4k", "1080p", "720p", "RAW"];
+  let hiddenFolderSegments = [];
+  function dispFolder(f) {
+    if (!f || f === ".") return f;
+    let parts = f.split("/");
+    if (parts.length > 1 && resolutionTokens.some(t => t.toLowerCase() === parts[0].toLowerCase())) {
+      parts = parts.slice(1);
+    }
+    parts = parts.filter(p => !hiddenFolderSegments.some(h => h.toLowerCase() === p.toLowerCase()));
+    return parts.join("/") || ".";
+  }
+
   // ── Config ────────────────────────────────────────────────────────────────
   fetch("/api/config").then(r => r.json()).then(cfg => {
+    if (Array.isArray(cfg.resolutions) && cfg.resolutions.length) resolutionTokens = cfg.resolutions;
+    if (Array.isArray(cfg.hidden_folder_segments)) hiddenFolderSegments = cfg.hidden_folder_segments;
     if (cfg.logo_url) {
       const img = document.getElementById("header-logo");
       img.src = cfg.logo_url;
@@ -523,7 +538,7 @@
     const v = list.find(x => x.video_path === videoPath);
     if (!v) return;
     document.getElementById("detail-name").textContent   = v.video_name || videoPath;
-    document.getElementById("detail-folder").textContent = v.folder && v.folder !== "." ? v.folder : "(raiz)";
+    document.getElementById("detail-folder").textContent = v.folder && v.folder !== "." ? dispFolder(v.folder) : "(raiz)";
     document.title = v.video_name || "Vídeo";
   }).catch(() => {
     // Fallback: derive name from path

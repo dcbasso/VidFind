@@ -19,8 +19,8 @@ __pycache__/
 .venv/
 venv/
 
-# Claude Code
-.claude/
+# Claude Code — versiona skills + settings do projeto; mantém overrides pessoais fora
+.claude/settings.local.json
 
 # OS
 .DS_Store

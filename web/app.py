@@ -455,12 +455,28 @@ def _resolution_label(token: str) -> str:
     return token.upper() if token.lower().endswith("k") else token
 
 
+def _find_raw_variant(folder: Path, clip_id: str):
+    """RAW files don't share the `_<token>` suffix convention — they keep
+    only the camera clip id (e.g. C0219.MP4 for .../C0219_169_1080p.mp4).
+    Match by stem, case-insensitively, since camera output is often .MP4."""
+    try:
+        if not folder.is_dir():
+            return None
+        for f in folder.iterdir():
+            if f.is_file() and f.stem.lower() == clip_id.lower():
+                return f
+    except Exception:
+        pass
+    return None
+
+
 def _resolution_variants(video_path: str):
     """Given an indexed video path, return the resolution variants that
     actually exist on disk. Convention (pasta + sufixo espelhado):
     the resolution is BOTH the first path segment under VIDEOS_PATH and a
-    `_<token>` suffix in the filename. Returns [] on any failure so the
-    caller can fall back to the single original download."""
+    `_<token>` suffix in the filename — except RAW, matched by clip id
+    (see _find_raw_variant). Returns [] on any failure so the caller can
+    fall back to the single original download."""
     try:
         base = Path(VIDEOS_PATH).resolve()
         orig = _safe_resolve(VIDEOS_PATH, video_path)
@@ -476,18 +492,26 @@ def _resolution_variants(video_path: str):
         return []  # first segment isn't a known resolution → don't guess
     stem, suffix = orig.stem, orig.suffix
     cur_sfx = f"_{cur}"
+    base_stem = stem[: -len(cur_sfx)] if stem.endswith(cur_sfx) else stem
+    clip_id = base_stem.split("_")[0]
     variants = []
     for tok in tokens:
-        name = (stem[: -len(cur_sfx)] + f"_{tok}" + suffix) if stem.endswith(cur_sfx) else orig.name
-        cand = base.joinpath(tok, *parts[1:-1], name)
+        folder = base.joinpath(tok, *parts[1:-1])
+        if tok == "RAW":
+            cand = _find_raw_variant(folder, clip_id)
+        else:
+            name = f"{base_stem}_{tok}{suffix}" if stem.endswith(cur_sfx) else orig.name
+            candidate = folder / name
+            cand = candidate if candidate.is_file() else None
+        if cand is None:
+            continue
         try:
-            if cand.is_file():
-                variants.append({
-                    "token": tok,
-                    "label": _resolution_label(tok),
-                    "path": str(cand),
-                    "size": cand.stat().st_size,
-                })
+            variants.append({
+                "token": tok,
+                "label": _resolution_label(tok),
+                "path": str(cand),
+                "size": cand.stat().st_size,
+            })
         except Exception:
             continue
     return variants
