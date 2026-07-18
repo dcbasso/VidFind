@@ -3,6 +3,7 @@
 
 import os
 import json
+import subprocess
 from pathlib import Path
 import requests
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, Response, abort
@@ -584,6 +585,74 @@ def scenes_txt():
         mimetype="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{video_name}_cenas.txt"'},
     )
+
+
+@app.route("/api/metadata")
+def metadata():
+    """Technical metadata (codec, resolution, duration, etc) via ffprobe."""
+    video_path = request.args.get("video_path", "").strip()
+    if not video_path:
+        abort(400)
+    try:
+        video_file = _safe_resolve(VIDEOS_PATH, video_path)
+    except Exception:
+        abort(403)
+    if not video_file.exists():
+        abort(404)
+
+    try:
+        proc = subprocess.run(
+            [
+                "ffprobe", "-v", "quiet", "-print_format", "json",
+                "-show_format", "-show_streams", str(video_file),
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+        probe = json.loads(proc.stdout)
+    except Exception:
+        return jsonify({"error": "ffprobe_failed"}), 500
+
+    fmt = probe.get("format", {})
+    streams = probe.get("streams", [])
+    video_stream = next((s for s in streams if s.get("codec_type") == "video"), None)
+    audio_stream = next((s for s in streams if s.get("codec_type") == "audio"), None)
+
+    def _fps(stream):
+        raw = stream.get("avg_frame_rate") or stream.get("r_frame_rate")
+        if not raw or raw == "0/0":
+            return None
+        num, _, den = raw.partition("/")
+        try:
+            return round(float(num) / float(den), 2) if den and float(den) else float(num)
+        except (ValueError, ZeroDivisionError):
+            return None
+
+    result = {
+        "file_name":  video_file.name,
+        "size":       video_file.stat().st_size,
+        "duration":   float(fmt.get("duration")) if fmt.get("duration") else None,
+        "bit_rate":   int(fmt.get("bit_rate")) if fmt.get("bit_rate") else None,
+        "format_name": fmt.get("format_long_name"),
+        "video": None,
+        "audio": None,
+    }
+    if video_stream:
+        result["video"] = {
+            "codec":    video_stream.get("codec_long_name") or video_stream.get("codec_name"),
+            "width":    video_stream.get("width"),
+            "height":   video_stream.get("height"),
+            "fps":      _fps(video_stream),
+            "bit_rate": int(video_stream["bit_rate"]) if video_stream.get("bit_rate") else None,
+            "pix_fmt":  video_stream.get("pix_fmt"),
+        }
+    if audio_stream:
+        result["audio"] = {
+            "codec":       audio_stream.get("codec_long_name") or audio_stream.get("codec_name"),
+            "sample_rate": audio_stream.get("sample_rate"),
+            "channels":    audio_stream.get("channels"),
+            "bit_rate":    int(audio_stream["bit_rate"]) if audio_stream.get("bit_rate") else None,
+        }
+    return jsonify(result)
 
 
 if __name__ == "__main__":

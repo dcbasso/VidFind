@@ -225,6 +225,31 @@
     .scene-desc { font-size: 0.92rem; color: var(--muted); font-weight: 300; line-height: 1.55; }
     .scene-row:hover .scene-desc { color: var(--text); }
 
+    /* Metadata pane */
+    .res-tab-bar {
+      display: flex; gap: 4px; padding: 16px 32px 0; border-bottom: 1px solid var(--border);
+    }
+    .res-tab {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-family: var(--font-heading); font-size: 0.78rem; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 8px 14px; border-bottom: 2px solid transparent;
+    }
+    .res-tab:hover { color: var(--text); }
+    .res-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .meta-group { padding: 24px 32px; border-bottom: 1px solid var(--border); }
+    .meta-group:last-child { border-bottom: none; }
+    .meta-group h3 {
+      font-family: var(--font-heading); font-size: 0.82rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--accent-dim); margin-bottom: 12px; font-weight: 400;
+    }
+    .meta-row {
+      display: flex; justify-content: space-between; gap: 16px;
+      padding: 7px 0; border-bottom: 1px solid var(--border);
+    }
+    .meta-row:last-child { border-bottom: none; }
+    .meta-label { font-size: 0.85rem; color: var(--muted); }
+    .meta-value { font-size: 0.85rem; color: var(--text); font-weight: 500; text-align: right; }
+
     /* ── State / loading ─────────────────────────────────────────────────── */
     .state-msg {
       display: flex; flex-direction: column; align-items: center;
@@ -246,6 +271,21 @@
       white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
     }
     .action-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(128,128,128,0.08); }
+
+    /* ── Download resolution menu (floating) ─────────────────────────────── */
+    .dl-menu {
+      position: fixed; min-width: 168px; background: var(--surface);
+      border: 1px solid var(--border2); border-radius: 4px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35); padding: 6px; z-index: 60;
+    }
+    .dl-opt {
+      width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 9px;
+      border-radius: 3px; border: none; background: transparent;
+      cursor: pointer; font: inherit; color: var(--text); text-align: left; text-decoration: none;
+    }
+    .dl-opt:hover { background: var(--surface2); }
+    .dl-opt .dl-lbl { flex: 1; font-size: 13px; font-family: var(--font-heading); }
+    .dl-opt .dl-size { font-size: 11px; color: var(--muted); }
 
     /* ── Footer ───────────────────────────────────────────────────────────── */
     footer {
@@ -306,13 +346,14 @@
         <a id="btn-dl-srt"    class="action-btn" href="#" download>↓ <span data-i18n="video.dlSrt">SRT</span></a>
         <a id="btn-dl-txt"    class="action-btn" href="#" download>↓ <span data-i18n="video.dlTxt">TXT</span></a>
         <a id="btn-dl-scenes" class="action-btn" href="#" download>↓ <span data-i18n="video.dlScenes">Cenas</span></a>
-        <a id="btn-dl-video"  class="action-btn" href="#" download>↓ <span data-i18n="video.dlVideo">Vídeo</span></a>
+        <button id="btn-dl-video" class="action-btn" type="button">↓ <span data-i18n="video.dlVideo">Vídeo</span></button>
       </div>
     </div>
 
     <nav class="detail-tab-bar">
       <button class="detail-tab active" data-pane="subtitles">≡ <span data-i18n="video.tabSubtitle">Legenda</span></button>
       <button class="detail-tab" data-pane="scenes">⬡ <span data-i18n="video.tabScenes">Cenas</span></button>
+      <button class="detail-tab" data-pane="metadata">◫ <span data-i18n="video.tabMetadata">Metadados</span></button>
     </nav>
 
     <div class="detail-pane" id="pane-subtitles">
@@ -320,6 +361,10 @@
     </div>
 
     <div class="detail-pane hidden" id="pane-scenes">
+      <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+
+    <div class="detail-pane hidden" id="pane-metadata">
       <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     </div>
 
@@ -450,7 +495,69 @@
   document.getElementById("btn-dl-srt").href    = `/api/subtitle?video_path=${vp}`;
   document.getElementById("btn-dl-txt").href    = `/api/transcript/txt?video_path=${vp}`;
   document.getElementById("btn-dl-scenes").href = `/api/scenes/txt?video_path=${vp}`;
-  document.getElementById("btn-dl-video").href  = `/api/video?path=${vp}&download=1`;
+  // ── Download resolution picker ───────────────────────────────────────────
+  let dlMenuEl = null;
+  let resolutionVariants = null; // cached [{token,label,path,size}], shared with metadata pane
+  function fetchResolutionVariants() {
+    if (resolutionVariants) return Promise.resolve(resolutionVariants);
+    return fetch(`/api/resolutions?video_path=${vp}`)
+      .then(r => r.json())
+      .then(data => resolutionVariants = (data && data.variants) || []);
+  }
+  function closeDownloadMenu() {
+    if (dlMenuEl) { dlMenuEl.remove(); dlMenuEl = null; }
+  }
+  function triggerDownload(path) {
+    const a = document.createElement("a");
+    a.href = `/api/video?path=${encodeURIComponent(path)}&download=1`;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  function fmtBytes(n) {
+    if (!n && n !== 0) return "—";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0, v = n;
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+  }
+  document.getElementById("btn-dl-video").addEventListener("click", (e) => {
+    closeDownloadMenu();
+    const btn = e.currentTarget;
+    fetchResolutionVariants()
+      .then(variants => {
+        if (variants.length <= 1) {
+          triggerDownload(variants[0] ? variants[0].path : videoPath);
+          return;
+        }
+        const menu = document.createElement("div");
+        menu.className = "dl-menu";
+        menu.innerHTML = variants.map(v => `
+          <button class="dl-opt" data-path="${escHtml(v.path)}">
+            <span class="dl-lbl">${escHtml(v.label)}</span>
+            <span class="dl-size">${fmtBytes(v.size)}</span>
+          </button>`).join("");
+        document.body.appendChild(menu);
+        const rect = btn.getBoundingClientRect();
+        menu.style.top = `${rect.bottom + 6}px`;
+        menu.style.left = `${Math.min(rect.left, window.innerWidth - menu.offsetWidth - 12)}px`;
+        menu.addEventListener("click", (e2) => {
+          const opt = e2.target.closest(".dl-opt");
+          if (!opt) return;
+          e2.stopPropagation();
+          triggerDownload(opt.dataset.path);
+          closeDownloadMenu();
+        });
+        dlMenuEl = menu;
+      })
+      .catch(() => triggerDownload(videoPath));
+  });
+  document.addEventListener("click", (e) => {
+    if (dlMenuEl && !e.target.closest(".dl-menu") && e.target.id !== "btn-dl-video") closeDownloadMenu();
+  });
+  window.addEventListener("scroll", closeDownloadMenu, true);
+  window.addEventListener("resize", closeDownloadMenu);
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
   document.querySelector(".detail-tab-bar").addEventListener("click", e => {
@@ -461,6 +568,7 @@
     const pane = tab.dataset.pane;
     document.getElementById("pane-subtitles").classList.toggle("hidden", pane !== "subtitles");
     document.getElementById("pane-scenes").classList.toggle("hidden", pane !== "scenes");
+    document.getElementById("pane-metadata").classList.toggle("hidden", pane !== "metadata");
   });
 
   // ── Subtitle pane ─────────────────────────────────────────────────────────
@@ -531,7 +639,110 @@
   document.querySelector(".detail-tab-bar").addEventListener("click", e => {
     const tab = e.target.closest(".detail-tab");
     if (tab && tab.dataset.pane === "scenes") loadScenes();
+    if (tab && tab.dataset.pane === "metadata") loadMetadata();
   });
+
+  // ── Metadata pane ─────────────────────────────────────────────────────────
+  let metadataLoaded = false;
+
+  function fmtBytes(n) {
+    if (!n && n !== 0) return "—";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0, v = n;
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+  }
+  function fmtDuration(s) {
+    if (!s && s !== 0) return "—";
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
+    return h > 0 ? `${h}h ${m}m ${sec}s` : `${m}m ${sec}s`;
+  }
+  function metaRow(label, value) {
+    return `<div class="meta-row"><span class="meta-label">${escHtml(label)}</span><span class="meta-value">${escHtml(value ?? "—")}</span></div>`;
+  }
+
+  function metaHtml(data) {
+    if (data.error) return `<div class="state-msg"><p>${t("video.errMetadata")}</p></div>`;
+    let html = `<div class="meta-group"><h3>${t("video.metaGeneral")}</h3>`;
+    html += metaRow(t("video.metaFile"), data.file_name);
+    html += metaRow(t("video.metaSize"), fmtBytes(data.size));
+    html += metaRow(t("video.metaDuration"), fmtDuration(data.duration));
+    html += metaRow(t("video.metaFormat"), data.format_name);
+    html += metaRow(t("video.metaBitrate"), data.bit_rate ? `${Math.round(data.bit_rate / 1000)} kbps` : "—");
+    html += `</div>`;
+    if (data.video) {
+      html += `<div class="meta-group"><h3>${t("video.metaVideo")}</h3>`;
+      html += metaRow(t("video.metaCodec"), data.video.codec);
+      html += metaRow(t("video.metaResolution"), data.video.width && data.video.height ? `${data.video.width}×${data.video.height}` : "—");
+      html += metaRow(t("video.metaFps"), data.video.fps ? `${data.video.fps} fps` : "—");
+      html += metaRow(t("video.metaBitrate"), data.video.bit_rate ? `${Math.round(data.video.bit_rate / 1000)} kbps` : "—");
+      html += metaRow(t("video.metaPixFmt"), data.video.pix_fmt);
+      html += `</div>`;
+    }
+    if (data.audio) {
+      html += `<div class="meta-group"><h3>${t("video.metaAudio")}</h3>`;
+      html += metaRow(t("video.metaCodec"), data.audio.codec);
+      html += metaRow(t("video.metaSampleRate"), data.audio.sample_rate ? `${data.audio.sample_rate} Hz` : "—");
+      html += metaRow(t("video.metaChannels"), data.audio.channels);
+      html += metaRow(t("video.metaBitrate"), data.audio.bit_rate ? `${Math.round(data.audio.bit_rate / 1000)} kbps` : "—");
+      html += `</div>`;
+    }
+    return html;
+  }
+
+  const metaCache = {}; // token -> parsed metadata response
+  function showMetadataFor(pane, path, token) {
+    if (metaCache[token]) { pane.innerHTML = metaCache[token]; return; }
+    pane.innerHTML = loading();
+    fetch(`/api/metadata?video_path=${encodeURIComponent(path)}`)
+      .then(r => r.json())
+      .then(data => {
+        const html = metaHtml(data);
+        metaCache[token] = html;
+        pane.innerHTML = html;
+      })
+      .catch(() => {
+        pane.innerHTML = `<div class="state-msg"><p>${t("video.errMetadata")}</p></div>`;
+      });
+  }
+
+  function loadMetadata() {
+    if (metadataLoaded) return;
+    metadataLoaded = true;
+    const pane = document.getElementById("pane-metadata");
+    fetchResolutionVariants().then(variants => {
+      if (!variants.length) {
+        showMetadataFor(pane, videoPath, "_");
+        return;
+      }
+      if (variants.length === 1) {
+        showMetadataFor(pane, variants[0].path, variants[0].token);
+        return;
+      }
+      const wrap = document.createElement("div");
+      const tabBar = document.createElement("div");
+      tabBar.className = "res-tab-bar";
+      tabBar.innerHTML = variants.map((v, i) =>
+        `<button class="res-tab${i === 0 ? " active" : ""}" data-token="${escHtml(v.token)}" data-path="${escHtml(v.path)}">${escHtml(v.label)}</button>`
+      ).join("");
+      const body = document.createElement("div");
+      body.className = "res-tab-body";
+      wrap.appendChild(tabBar);
+      wrap.appendChild(body);
+      pane.innerHTML = "";
+      pane.appendChild(wrap);
+      tabBar.addEventListener("click", e => {
+        const btn = e.target.closest(".res-tab");
+        if (!btn) return;
+        tabBar.querySelectorAll(".res-tab").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        showMetadataFor(body, btn.dataset.path, btn.dataset.token);
+      });
+      showMetadataFor(body, variants[0].path, variants[0].token);
+    }).catch(() => {
+      pane.innerHTML = `<div class="state-msg"><p>${t("video.errMetadata")}</p></div>`;
+    });
+  }
 
   // ── Video metadata → fill header info ─────────────────────────────────────
   fetch(`/api/videos`).then(r => r.json()).then(list => {

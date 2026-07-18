@@ -837,6 +837,7 @@
             <div class="rtext">${r.textHtml || ""}</div>
             <div class="ractions">
               <button class="btn btn-primary" data-action="play" data-src="r" data-idx="${i}">${icon("play")}${t("btn.play")}</button>
+              <a class="btn btn-secondary" href="/video?path=${vp}&t=${Math.floor(r.start)}">${icon("external")}${t("btn.goto")}</a>
               ${!isScenes ? `<a class="btn btn-secondary" href="/api/subtitle?video_path=${vp}" download>${icon("file-text")}SRT</a>` : ""}
               ${!isScenes ? `<a class="btn btn-secondary" href="/api/transcript/txt?video_path=${vp}" download>${icon("file-text")}TXT</a>` : ""}
               <button class="btn btn-secondary" data-action="download" data-src="r" data-idx="${i}">${icon("download")}${t("btn.video")}</button>
