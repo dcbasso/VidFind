@@ -30,7 +30,8 @@
       "Bash(zip -r /tmp/claude-1000/-home-dcbasso-worksapce-Hexata-VidFind/0eab2b7c-24b9-46c6-8ff5-f8ea0b1d623b/scratchpad/vidfind.zip web/app.py web/Dockerfile web/config.json web/templates/index.html web/templates/video.html web/static/i18n.js)",
       "Bash(scp -i ~/.ssh/cert_clientes -P 3380 /tmp/claude-1000/-home-dcbasso-worksapce-Hexata-VidFind/0eab2b7c-24b9-46c6-8ff5-f8ea0b1d623b/scratchpad/vidfind.zip root@192.168.15.200:/opt/vidfind_update.zip)",
       "Bash(git status *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
